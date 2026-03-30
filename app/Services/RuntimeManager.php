@@ -103,7 +103,7 @@ class RuntimeManager
             $result = Process::run("where {$binary}{$suffix} 2>NUL");
             if ($result->successful()) {
                 $firstLine = strtok(trim($result->output()), "\n");
-                if ($firstLine && file_exists(trim($firstLine))) {
+                if ($firstLine && @file_exists(trim($firstLine))) {
                     return trim($firstLine);
                 }
             }
@@ -113,7 +113,7 @@ class RuntimeManager
                 $lines = explode("\n", trim($result->output()));
                 foreach ($lines as $line) {
                     $line = trim($line);
-                    if ($line && file_exists($line) && (str_ends_with($line, '.exe') || str_ends_with($line, '.cmd'))) {
+                    if ($line && @file_exists($line) && (str_ends_with($line, '.exe') || str_ends_with($line, '.cmd'))) {
                         return $line;
                     }
                 }
@@ -122,7 +122,7 @@ class RuntimeManager
             $result = Process::run("which {$binary} 2>/dev/null");
             if ($result->successful()) {
                 $path = trim($result->output());
-                if ($path && file_exists($path)) {
+                if ($path && @file_exists($path)) {
                     return $path;
                 }
             }
@@ -131,7 +131,7 @@ class RuntimeManager
         // Check common locations
         $commonPaths = $this->getCommonPaths($binary);
         foreach ($commonPaths as $path) {
-            if (file_exists($path)) {
+            if (@file_exists($path)) {
                 return $path;
             }
         }
