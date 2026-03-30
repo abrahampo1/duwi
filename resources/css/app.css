@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+}
+
+/* RTL support for Farsi */
+[lang="fa"] {
+    --font-sans: 'Vazirmatn', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+[dir="rtl"] .font-mono {
+    direction: ltr;
+    text-align: left;
+}

@@ -1,0 +1,63 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="flex items-end justify-between mb-12">
+    <div>
+        <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-3">{{ __('Bots') }}</p>
+        <h1 class="font-serif text-3xl">{{ __('Mis bots') }}</h1>
+    </div>
+    <a href="{{ route('bots.create') }}" class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors">
+        {{ __('Nuevo bot') }}
+    </a>
+</div>
+
+@if($bots->isEmpty())
+<div class="border border-dashed border-black/10 py-20 text-center">
+    <p class="font-serif text-xl text-black/30 mb-2">{{ __('Sin bots') }}</p>
+    <p class="text-xs text-black/25 mb-6">{{ __('Clona un repositorio de GitHub o sube un ZIP') }}</p>
+    <a href="{{ route('bots.create') }}" class="border border-black px-5 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors">
+        {{ __('Crear bot') }}
+    </a>
+</div>
+@else
+<div class="border-t border-black/10">
+    @foreach($bots as $bot)
+    <div class="flex items-center justify-between py-5 border-b border-black/10">
+        <div class="flex items-center gap-5">
+            @if($bot->status === 'running')
+                <span class="h-1.5 w-1.5 rounded-full bg-black"></span>
+            @elseif($bot->status === 'error')
+                <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+            @elseif($bot->status === 'deploying')
+                <span class="h-1.5 w-1.5 rounded-full bg-black/40 animate-pulse"></span>
+            @else
+                <span class="h-1.5 w-1.5 rounded-full bg-black/15"></span>
+            @endif
+            <a href="{{ route('bots.show', $bot) }}" class="text-sm hover:text-black/50 transition-colors">{{ $bot->name }}</a>
+            <span class="text-[10px] uppercase tracking-[0.15em] text-black/20">{{ $bot->deploy_method }}</span>
+            <span class="text-[10px] text-black/20 font-mono">{{ $bot->entry_file }}</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            @if($bot->status === 'running')
+                <form method="POST" action="{{ route('bots.stop', $bot) }}" class="inline">
+                    @csrf
+                    <button class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">Stop</button>
+                </form>
+                <form method="POST" action="{{ route('bots.restart', $bot) }}" class="inline">
+                    @csrf
+                    <button class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">Restart</button>
+                </form>
+            @else
+                <form method="POST" action="{{ route('bots.start', $bot) }}" class="inline">
+                    @csrf
+                    <button class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">Start</button>
+                </form>
+            @endif
+            <a href="{{ route('bots.show', $bot) }}" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">&rarr;</a>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+@endsection
