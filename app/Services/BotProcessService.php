@@ -286,6 +286,90 @@ class BotProcessService
         }
     }
 
+    public function webhookDeploy(Bot $bot): array
+    {
+        if ($bot->deploy_method !== 'github' || !$bot->repo_url) {
+            return ['success' => false, 'message' => __('Este bot no usa GitHub.')];
+        }
+
+        $wasRunning = $bot->isRunning();
+
+        if ($wasRunning) {
+            $this->stop($bot);
+        }
+
+        $fullPath = $bot->getFullPath();
+
+        if (!File::isDirectory($fullPath . '/.git')) {
+            return $this->redeploy($bot);
+        }
+
+        $gitBin = $this->runtime->gitPath();
+
+        // Save current commit for rollback
+        $result = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+        $previousCommit = trim($result->output());
+
+        if (!$result->successful() || strlen($previousCommit) !== 40) {
+            return $this->redeploy($bot);
+        }
+
+        $bot->update(['status' => 'deploying']);
+        $this->log($bot, 'system', __('Webhook recibido, desplegando...'));
+
+        if ($bot->deploy_key) {
+            $this->writeDeployKeyToBot($bot);
+        }
+
+        // Git pull
+        $result = Process::path($fullPath)->timeout(120)->run("\"{$gitBin}\" pull 2>&1");
+
+        if (!$result->successful()) {
+            $this->log($bot, 'stderr', __('Error al actualizar: :output', ['output' => $result->output()]));
+            $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
+            return ['success' => false, 'message' => __('Git pull fallo, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
+        }
+
+        // Install dependencies
+        $this->installDependencies($bot);
+        $bot->refresh();
+
+        if ($bot->status === 'error') {
+            $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
+            return ['success' => false, 'message' => __('npm install fallo, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
+        }
+
+        $this->log($bot, 'system', __('Auto-deploy exitoso (webhook)'));
+
+        if ($wasRunning) {
+            $this->start($bot);
+        }
+
+        return ['success' => true, 'message' => __('Deploy exitoso.')];
+    }
+
+    private function rollback(Bot $bot, string $fullPath, string $gitBin, string $commit): void
+    {
+        $this->log($bot, 'system', __('Revirtiendo a :commit...', ['commit' => substr($commit, 0, 7)]));
+
+        $result = Process::path($fullPath)->run("\"{$gitBin}\" reset --hard {$commit} 2>&1");
+
+        if ($result->successful()) {
+            $this->installDependencies($bot);
+            $bot->refresh();
+
+            if ($bot->status !== 'error') {
+                $bot->update(['status' => 'stopped']);
+                $this->log($bot, 'system', __('Rollback exitoso a :commit', ['commit' => substr($commit, 0, 7)]));
+            } else {
+                $this->log($bot, 'stderr', __('Rollback completo pero npm install fallo'));
+            }
+        } else {
+            $bot->update(['status' => 'error']);
+            $this->log($bot, 'stderr', __('Rollback fallo: :output', ['output' => $result->output()]));
+        }
+    }
+
     public function configureGit(Bot $bot): array
     {
         if ($bot->deploy_method !== 'github' || !$bot->deploy_key) {

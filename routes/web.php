@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BotController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WebhookController;
 use App\Livewire\BotConsole;
 use App\Livewire\BotList;
 use App\Livewire\BotShow;
@@ -17,6 +18,9 @@ Route::get('/locale/{locale}', function (string $locale) {
     }
     return redirect()->back()->withInput();
 })->name('locale.set');
+
+// Webhooks (no auth, CSRF excluded)
+Route::post('/webhook/bot/{botId}', [WebhookController::class, 'handleGithub'])->name('webhook.bot');
 
 // Landing
 Route::get('/', function () {

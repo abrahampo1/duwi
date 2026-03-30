@@ -19,6 +19,9 @@ class Bot extends Model
         'deploy_method',
         'repo_url',
         'deploy_key',
+        'webhook_secret',
+        'auto_deploy',
+        'last_webhook_at',
         'entry_file',
         'node_version',
         'pid',
@@ -29,14 +32,27 @@ class Bot extends Model
 
     protected $hidden = [
         'deploy_key',
+        'webhook_secret',
     ];
 
     protected function casts(): array
     {
         return [
             'last_started_at' => 'datetime',
+            'last_webhook_at' => 'datetime',
             'deploy_key' => 'encrypted',
+            'webhook_secret' => 'encrypted',
+            'auto_deploy' => 'boolean',
         ];
+    }
+
+    public function getWebhookUrl(): ?string
+    {
+        if (!$this->webhook_secret) {
+            return null;
+        }
+
+        return url("/webhook/bot/{$this->id}");
     }
 
     public function user(): BelongsTo

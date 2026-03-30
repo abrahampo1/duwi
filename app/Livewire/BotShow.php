@@ -6,6 +6,7 @@ use App\Models\Bot;
 use App\Services\BotProcessService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -71,6 +72,26 @@ class BotShow extends Component
         $service->installDependencies($this->bot);
         $this->notify(__('Dependencias instaladas.'));
         $this->bot->refresh();
+    }
+
+    public function toggleAutoDeploy(): void
+    {
+        if (!$this->bot->auto_deploy && !$this->bot->webhook_secret) {
+            $this->bot->webhook_secret = Str::random(40);
+        }
+
+        $this->bot->auto_deploy = !$this->bot->auto_deploy;
+        $this->bot->save();
+
+        $status = $this->bot->auto_deploy ? __('Auto-deploy activado') : __('Auto-deploy desactivado');
+        $this->notify($status);
+    }
+
+    public function regenerateWebhookSecret(): void
+    {
+        $this->bot->webhook_secret = Str::random(40);
+        $this->bot->save();
+        $this->notify(__('Webhook secret regenerado'));
     }
 
     public function configureGitSsh(): void

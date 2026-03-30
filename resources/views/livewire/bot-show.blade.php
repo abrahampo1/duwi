@@ -95,6 +95,54 @@
         </div>
     </div>
 
+    <!-- Webhook / Auto-deploy -->
+    @if($bot->deploy_method === 'github')
+    <div class="border border-black/10 p-6 mb-12">
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-[10px] uppercase tracking-[0.25em] text-black/30">{{ __('Auto-deploy') }}</p>
+            <button wire:click="toggleAutoDeploy" wire:loading.attr="disabled"
+                class="border px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] transition-colors disabled:opacity-30
+                {{ $bot->auto_deploy ? 'border-black bg-black text-white hover:bg-transparent hover:text-black' : 'border-black/15 text-black/40 hover:border-black hover:text-black' }}">
+                <span wire:loading.remove wire:target="toggleAutoDeploy">{{ $bot->auto_deploy ? __('Activado') : __('Desactivado') }}</span>
+                <span wire:loading wire:target="toggleAutoDeploy">...</span>
+            </button>
+        </div>
+
+        @if($bot->auto_deploy && $bot->webhook_secret)
+        <div class="space-y-4">
+            <div>
+                <p class="text-[10px] uppercase tracking-[0.15em] text-black/30 mb-2">{{ __('Webhook URL') }}</p>
+                <div class="flex items-center gap-2">
+                    <input type="text" readonly value="{{ $bot->getWebhookUrl() }}"
+                        class="flex-1 border-0 border-b border-black/10 bg-transparent px-0 py-1 text-xs font-mono text-black/50 focus:ring-0">
+                    <button onclick="navigator.clipboard.writeText('{{ $bot->getWebhookUrl() }}')"
+                        class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">{{ __('Copiar') }}</button>
+                </div>
+            </div>
+
+            <div x-data="{ show: false }">
+                <p class="text-[10px] uppercase tracking-[0.15em] text-black/30 mb-2">{{ __('Webhook Secret') }}</p>
+                <div class="flex items-center gap-2">
+                    <input :type="show ? 'text' : 'password'" readonly value="{{ $bot->webhook_secret }}"
+                        class="flex-1 border-0 border-b border-black/10 bg-transparent px-0 py-1 text-xs font-mono text-black/50 focus:ring-0">
+                    <button @click="show = !show" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black" x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
+                    <button onclick="navigator.clipboard.writeText('{{ $bot->webhook_secret }}')"
+                        class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">{{ __('Copiar') }}</button>
+                    <button wire:click="regenerateWebhookSecret" wire:confirm="{{ __('Regenerar secret? El anterior dejara de funcionar.') }}"
+                        class="text-[10px] uppercase tracking-[0.15em] text-red-400 hover:text-red-600">{{ __('Regenerar') }}</button>
+                </div>
+            </div>
+
+            @if($bot->last_webhook_at)
+            <p class="text-[10px] text-black/25">{{ __('Ultimo webhook') }}: {{ $bot->last_webhook_at->format('d/m/Y H:i') }}</p>
+            @endif
+
+            <p class="text-[10px] text-black/25 leading-relaxed">{{ __('Pega la URL y el secret en GitHub → Settings → Webhooks. Content type: application/json.') }}</p>
+        </div>
+        @endif
+    </div>
+    @endif
+
     <!-- Console -->
     <div class="mb-12" wire:poll.3s="refreshConsole">
         <div class="flex items-center justify-between mb-4">
