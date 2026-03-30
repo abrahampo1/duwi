@@ -193,70 +193,81 @@
         @else
         <div class="border-t border-black/10">
             @foreach($deployments as $deploy)
-            <div class="py-4 border-b border-black/5 flex items-center justify-between" wire:key="deploy-{{ $deploy->id }}">
-                <div class="flex items-center gap-4 min-w-0 flex-1">
-                    @if($deploy->status === 'success')
-                        <span class="h-1.5 w-1.5 rounded-full bg-green-500 flex-shrink-0"></span>
-                    @elseif($deploy->status === 'failed')
-                        <span class="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
-                    @elseif($deploy->status === 'rolled_back')
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
-                    @elseif($deploy->status === 'verifying')
-                        <span class="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse flex-shrink-0"></span>
-                    @else
-                        <span class="h-1.5 w-1.5 rounded-full bg-black/25 {{ in_array($deploy->status, ['pending', 'running']) ? 'animate-pulse' : '' }} flex-shrink-0"></span>
-                    @endif
-
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-3">
-                            <span class="font-mono text-sm text-black/60">{{ $deploy->shortCommit() }}</span>
-                            <span class="text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 border
-                                @if($deploy->status === 'success') border-green-200 text-green-600
-                                @elseif($deploy->status === 'failed') border-red-200 text-red-500
-                                @elseif($deploy->status === 'rolled_back') border-amber-200 text-amber-600
-                                @elseif($deploy->status === 'verifying') border-blue-200 text-blue-500
-                                @else border-black/10 text-black/30
-                                @endif
-                            ">{{ $deploy->status }}</span>
-                            <span class="text-[9px] uppercase tracking-[0.1em] text-black/20">{{ $deploy->triggered_by }}</span>
-                        </div>
-                        @if($deploy->commit_message)
-                            <p class="text-xs text-black/35 mt-0.5 truncate">{{ $deploy->commit_message }}</p>
+            <div class="py-4 border-b border-black/5" wire:key="deploy-{{ $deploy->id }}">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4 min-w-0 flex-1">
+                        @if($deploy->status === 'success')
+                            <span class="h-1.5 w-1.5 rounded-full bg-green-500 flex-shrink-0"></span>
+                        @elseif($deploy->status === 'failed')
+                            <span class="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
+                        @elseif($deploy->status === 'rolled_back')
+                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+                        @elseif($deploy->status === 'verifying')
+                            <span class="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse flex-shrink-0"></span>
+                        @else
+                            <span class="h-1.5 w-1.5 rounded-full bg-black/25 {{ in_array($deploy->status, ['pending', 'running']) ? 'animate-pulse' : '' }} flex-shrink-0"></span>
                         @endif
-                        <p class="text-[10px] text-black/20 mt-0.5">
-                            {{ $deploy->created_at->format('d/m/Y H:i:s') }}
-                            @if($deploy->duration()) · {{ $deploy->duration() }} @endif
-                            @if($deploy->previous_commit) · {{ __('desde') }} {{ substr($deploy->previous_commit, 0, 7) }} @endif
-                        </p>
-                    </div>
-                </div>
 
-                <div class="flex items-center gap-2 flex-shrink-0 ms-4">
-                    @if($deploy->output)
-                    <div x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="text-[10px] uppercase tracking-[0.15em] {{ $deploy->status === 'failed' ? 'text-red-400 hover:text-red-600' : 'text-black/25 hover:text-black' }}">{{ __('Output') }}</button>
-                        <div x-show="open" @click.outside="open = false" x-transition
-                            class="absolute right-0 top-full mt-1 w-[480px] bg-black/[0.03] border border-black/10 shadow-lg z-10 p-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[9px] uppercase tracking-[0.15em] text-black/30">{{ __('Output de Node.js') }}</span>
-                                <button @click="open = false" class="text-[10px] text-black/25 hover:text-black">&times;</button>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-sm text-black/60">{{ $deploy->shortCommit() }}</span>
+                                <span class="text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 border
+                                    @if($deploy->status === 'success') border-green-200 text-green-600
+                                    @elseif($deploy->status === 'failed') border-red-200 text-red-500
+                                    @elseif($deploy->status === 'rolled_back') border-amber-200 text-amber-600
+                                    @elseif($deploy->status === 'verifying') border-blue-200 text-blue-500
+                                    @else border-black/10 text-black/30
+                                    @endif
+                                ">{{ $deploy->status }}</span>
+                                <span class="text-[9px] uppercase tracking-[0.1em] text-black/20">{{ $deploy->triggered_by }}</span>
                             </div>
-                            <pre class="text-[11px] font-mono text-black/50 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">{{ $deploy->output }}</pre>
+                            @if($deploy->commit_message)
+                                <p class="text-xs text-black/35 mt-0.5 truncate">{{ $deploy->commit_message }}</p>
+                            @endif
+                            <p class="text-[10px] text-black/20 mt-0.5">
+                                {{ $deploy->created_at->format('d/m/Y H:i:s') }}
+                                @if($deploy->duration()) · {{ $deploy->duration() }} @endif
+                                @if($deploy->previous_commit) · {{ __('desde') }} {{ substr($deploy->previous_commit, 0, 7) }} @endif
+                            </p>
                         </div>
                     </div>
-                    @endif
 
-                    @if($deploy->status === 'success' && $deploy->commit_hash && (!$currentCommit || $deploy->commit_hash !== $currentCommit))
-                    <button
-                        wire:click="rollbackTo({{ $deploy->id }})"
-                        wire:confirm="{{ __('Rollback a :commit? El bot se reiniciara.', ['commit' => $deploy->shortCommit()]) }}"
-                        wire:loading.attr="disabled"
-                        class="border border-black/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-black/30 hover:border-amber-500 hover:text-amber-600 transition-colors disabled:opacity-30">
-                        <span wire:loading.remove wire:target="rollbackTo({{ $deploy->id }})">Rollback</span>
-                        <span wire:loading wire:target="rollbackTo({{ $deploy->id }})">...</span>
-                    </button>
-                    @endif
+                    <div class="flex items-center gap-2 flex-shrink-0 ms-4">
+                        @if($deploy->output && $deploy->status !== 'failed')
+                        <div x-data="{ open: false }" class="relative">
+                            <button @click="open = !open" class="text-[10px] uppercase tracking-[0.15em] text-black/25 hover:text-black">{{ __('Output') }}</button>
+                            <div x-show="open" @click.outside="open = false" x-transition
+                                class="absolute right-0 top-full mt-1 w-[540px] border border-black/10 shadow-lg z-10">
+                                <div class="flex items-center justify-between px-4 py-2 border-b border-black/5 bg-white">
+                                    <span class="text-[9px] uppercase tracking-[0.15em] text-black/30">{{ __('Output de Node.js') }}</span>
+                                    <button @click="open = false" class="text-[10px] text-black/25 hover:text-black">&times;</button>
+                                </div>
+                                <div class="bg-black/[0.02] p-4 max-h-72 overflow-y-auto">
+                                    <pre class="text-xs font-mono text-black/50 whitespace-pre-wrap leading-relaxed">{{ $deploy->output }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        @if($deploy->status === 'success' && $deploy->commit_hash && (!$currentCommit || $deploy->commit_hash !== $currentCommit))
+                        <button
+                            wire:click="rollbackTo({{ $deploy->id }})"
+                            wire:confirm="{{ __('Rollback a :commit? El bot se reiniciara.', ['commit' => $deploy->shortCommit()]) }}"
+                            wire:loading.attr="disabled"
+                            class="border border-black/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-black/30 hover:border-amber-500 hover:text-amber-600 transition-colors disabled:opacity-30">
+                            <span wire:loading.remove wire:target="rollbackTo({{ $deploy->id }})">Rollback</span>
+                            <span wire:loading wire:target="rollbackTo({{ $deploy->id }})">...</span>
+                        </button>
+                        @endif
+                    </div>
                 </div>
+
+                {{-- Failed deploys: show output inline as console --}}
+                @if($deploy->status === 'failed' && $deploy->output)
+                <div class="mt-3 ms-5.5 bg-black/[0.02] border border-red-200/60 p-4 max-h-52 overflow-y-auto">
+                    <pre class="text-xs font-mono text-red-500/70 whitespace-pre-wrap leading-relaxed">{{ $deploy->output }}</pre>
+                </div>
+                @endif
             </div>
             @endforeach
         </div>
