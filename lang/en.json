@@ -188,5 +188,7 @@
     "Rollback verificado a :commit": "Rollback verified to :commit",
     "Rollback a :commit completado pero verificacion fallo": "Rollback to :commit completed but verification failed",
     "Este deploy no tiene commit hash.": "This deploy has no commit hash.",
-    "Error al actualizar: npm install fallo": "Error updating: npm install failed"
+    "Error al actualizar: npm install fallo": "Error updating: npm install failed",
+    "Output": "Output",
+    "Output de Node.js": "Node.js output"
 }

@@ -188,5 +188,7 @@
     "Rollback verificado a :commit": "بازگشت تأیید شده به :commit",
     "Rollback a :commit completado pero verificacion fallo": "بازگشت به :commit کامل شد اما تأیید ناموفق بود",
     "Este deploy no tiene commit hash.": "این استقرار هش commit ندارد.",
-    "Error al actualizar: npm install fallo": "خطا در به‌روزرسانی: npm install ناموفق"
+    "Error al actualizar: npm install fallo": "خطا در به‌روزرسانی: npm install ناموفق",
+    "Output": "خروجی",
+    "Output de Node.js": "خروجی Node.js"
 }

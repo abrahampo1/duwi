@@ -423,9 +423,13 @@ class BotProcessService
         $deployment->update(['status' => 'verifying']);
         $this->log($bot, 'system', __('Verificando que el bot arranca...'));
 
+        // Clear log files so we only capture output from this verification run
+        $this->clearBotLogs($bot);
+
         $started = $this->start($bot);
         if (!$started) {
-            $deployment->update(['status' => 'failed', 'output' => __('El bot no pudo arrancar'), 'finished_at' => now()]);
+            $nodeOutput = $this->captureNodeOutput($bot);
+            $deployment->update(['status' => 'failed', 'output' => $nodeOutput ?: __('El bot no pudo arrancar'), 'finished_at' => now()]);
             $this->log($bot, 'stderr', __('Verificacion fallida: el bot no arranco'));
             $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
 
@@ -441,9 +445,10 @@ class BotProcessService
         $bot->refresh();
 
         if (!$this->isProcessRunning($bot)) {
+            $nodeOutput = $this->captureNodeOutput($bot);
             $deployment->update([
                 'status' => 'failed',
-                'output' => __('El bot se detuvo tras arrancar'),
+                'output' => $nodeOutput ?: __('El bot se detuvo tras arrancar'),
                 'finished_at' => now(),
             ]);
             $this->log($bot, 'stderr', __('Verificacion fallida: el bot se detuvo tras arrancar'));
@@ -458,7 +463,8 @@ class BotProcessService
         }
 
         // Deploy verified!
-        $deployment->update(['status' => 'success', 'finished_at' => now()]);
+        $nodeOutput = $this->captureNodeOutput($bot);
+        $deployment->update(['status' => 'success', 'output' => $nodeOutput, 'finished_at' => now()]);
         $this->log($bot, 'system', __('Deploy verificado y exitoso (webhook)'));
 
         if (!$wasRunning) {
@@ -477,9 +483,17 @@ class BotProcessService
         $deployment->update(['status' => 'verifying']);
         $this->log($bot, 'system', __('Verificando que el bot arranca...'));
 
+        // Clear log files so we only capture output from this verification run
+        $this->clearBotLogs($bot);
+
         $started = $this->start($bot);
         if (!$started) {
-            $deployment->update(['status' => 'failed', 'output' => __('El bot no pudo arrancar'), 'finished_at' => now()]);
+            $nodeOutput = $this->captureNodeOutput($bot);
+            $deployment->update([
+                'status' => 'failed',
+                'output' => $nodeOutput ?: __('El bot no pudo arrancar'),
+                'finished_at' => now(),
+            ]);
             $this->log($bot, 'stderr', __('Verificacion fallida: el bot no arranco'));
             return false;
         }
@@ -488,9 +502,10 @@ class BotProcessService
         $bot->refresh();
 
         if (!$this->isProcessRunning($bot)) {
+            $nodeOutput = $this->captureNodeOutput($bot);
             $deployment->update([
                 'status' => 'failed',
-                'output' => __('El bot se detuvo tras arrancar'),
+                'output' => $nodeOutput ?: __('El bot se detuvo tras arrancar'),
                 'finished_at' => now(),
             ]);
             $this->log($bot, 'stderr', __('Verificacion fallida: el bot se detuvo tras arrancar'));
@@ -499,8 +514,9 @@ class BotProcessService
         }
 
         // Verification passed - stop the bot (user can start manually)
+        $nodeOutput = $this->captureNodeOutput($bot);
         $this->stop($bot);
-        $deployment->update(['status' => 'success', 'finished_at' => now()]);
+        $deployment->update(['status' => 'success', 'output' => $nodeOutput, 'finished_at' => now()]);
         $this->log($bot, 'system', __('Verificacion exitosa: el bot arranca correctamente'));
         return true;
     }
@@ -673,6 +689,58 @@ class BotProcessService
         $hash = trim($result->output());
 
         return ($result->successful() && strlen($hash) === 40) ? $hash : null;
+    }
+
+    /**
+     * Clear bot stdout/stderr log files before a verification run.
+     */
+    private function clearBotLogs(Bot $bot): void
+    {
+        $botPath = $bot->getFullPath();
+        $logFile = $botPath . '/bot_output.log';
+        $errorLogFile = $botPath . '/bot_error.log';
+
+        if (file_exists($logFile)) {
+            file_put_contents($logFile, '');
+        }
+        if (file_exists($errorLogFile)) {
+            file_put_contents($errorLogFile, '');
+        }
+    }
+
+    /**
+     * Capture Node.js stdout + stderr output from bot log files.
+     */
+    private function captureNodeOutput(Bot $bot): string
+    {
+        $botPath = $bot->getFullPath();
+        $output = '';
+
+        $logFile = $botPath . '/bot_output.log';
+        if (file_exists($logFile)) {
+            $content = file_get_contents($logFile);
+            if ($content) {
+                $output .= trim($content);
+            }
+        }
+
+        $errorLogFile = $botPath . '/bot_error.log';
+        if (file_exists($errorLogFile)) {
+            $content = file_get_contents($errorLogFile);
+            if ($content) {
+                $stderr = trim($content);
+                if ($stderr) {
+                    $output .= ($output ? "\n\n" : '') . "[STDERR]\n" . $stderr;
+                }
+            }
+        }
+
+        // Limit to last 5000 chars to avoid storing huge outputs
+        if (strlen($output) > 5000) {
+            $output = '...' . substr($output, -5000);
+        }
+
+        return $output;
     }
 
     private function createDeployment(Bot $bot, array $data): Deployment

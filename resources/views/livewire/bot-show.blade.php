@@ -234,10 +234,14 @@
                 <div class="flex items-center gap-2 flex-shrink-0 ms-4">
                     @if($deploy->output)
                     <div x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="text-[10px] uppercase tracking-[0.15em] text-black/25 hover:text-black">{{ __('Log') }}</button>
+                        <button @click="open = !open" class="text-[10px] uppercase tracking-[0.15em] {{ $deploy->status === 'failed' ? 'text-red-400 hover:text-red-600' : 'text-black/25 hover:text-black' }}">{{ __('Output') }}</button>
                         <div x-show="open" @click.outside="open = false" x-transition
-                            class="absolute right-0 top-full mt-1 w-80 bg-white border border-black/10 shadow-lg z-10 p-3">
-                            <pre class="text-[10px] font-mono text-black/40 whitespace-pre-wrap max-h-40 overflow-y-auto">{{ $deploy->output }}</pre>
+                            class="absolute right-0 top-full mt-1 w-[480px] bg-black/[0.03] border border-black/10 shadow-lg z-10 p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[9px] uppercase tracking-[0.15em] text-black/30">{{ __('Output de Node.js') }}</span>
+                                <button @click="open = false" class="text-[10px] text-black/25 hover:text-black">&times;</button>
+                            </div>
+                            <pre class="text-[11px] font-mono text-black/50 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">{{ $deploy->output }}</pre>
                         </div>
                     </div>
                     @endif
