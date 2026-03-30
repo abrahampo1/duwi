@@ -344,6 +344,71 @@
         </div>
         @endif
 
+        <!-- Database User -->
+        <div class="border border-black/10 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-[10px] uppercase tracking-[0.25em] text-black/30">{{ __('Base de datos') }}</p>
+                @if($dbSupported)
+                    <span class="text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 border border-green-200 text-green-600">{{ $dbDriverLabel }}</span>
+                @else
+                    <span class="text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5 border border-black/10 text-black/30">SQLite</span>
+                @endif
+            </div>
+
+            @if(!$dbSupported)
+                <p class="text-[10px] text-black/30 leading-relaxed">{{ __('La gestion de usuarios de base de datos requiere MySQL, MariaDB o PostgreSQL. El driver actual es SQLite.') }}</p>
+            @elseif(!$bot->db_user)
+                <p class="text-[10px] text-black/30 mb-4 leading-relaxed">{{ __('Crea un usuario de base de datos para que este bot pueda conectarse a :driver. Se inyectaran las credenciales automaticamente al iniciar el bot.', ['driver' => $dbDriverLabel]) }}</p>
+                <button wire:click="createDbUser" wire:loading.attr="disabled" wire:confirm="{{ __('Crear usuario de base de datos para este bot?') }}"
+                    class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors disabled:opacity-30">
+                    <span wire:loading.remove wire:target="createDbUser">{{ __('Crear usuario de BD') }}</span>
+                    <span wire:loading wire:target="createDbUser">...</span>
+                </button>
+            @else
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-black/40">{{ __('Usuario') }}</span>
+                        <span class="text-xs font-mono">{{ $bot->db_user }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-black/40">{{ __('Base de datos') }}</span>
+                        <span class="text-xs font-mono">{{ $bot->db_name }}</span>
+                    </div>
+                    <div x-data="{ show: false }">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-black/40">{{ __('Contrasena') }}</span>
+                            <div class="flex items-center gap-2">
+                                <input :type="show ? 'text' : 'password'" readonly value="{{ $bot->db_password }}"
+                                    class="border-0 bg-transparent p-0 text-xs font-mono text-black/50 focus:ring-0 w-64 text-right">
+                                <button @click="show = !show" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black" x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
+                                <button onclick="navigator.clipboard.writeText('{{ $bot->db_password }}')"
+                                    class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">{{ __('Copiar') }}</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-black/40">{{ __('Host') }}</span>
+                        <span class="text-xs font-mono">{{ config('database.connections.' . config('database.default') . '.host', '127.0.0.1') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-black/40">{{ __('Puerto') }}</span>
+                        <span class="text-xs font-mono">{{ config('database.connections.' . config('database.default') . '.port') }}</span>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-black/25 mt-4 leading-relaxed">{{ __('Las credenciales se inyectan automaticamente como variables de entorno (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD) al iniciar el bot.') }}</p>
+
+                <div class="mt-4 pt-4 border-t border-black/5">
+                    <button wire:click="revokeDbUser" wire:loading.attr="disabled"
+                        wire:confirm="{{ __('Revocar el usuario de base de datos? Se eliminara el usuario y su base de datos.') }}"
+                        class="border border-red-200 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-red-400 hover:border-red-500 hover:text-red-600 transition-colors disabled:opacity-30">
+                        <span wire:loading.remove wire:target="revokeDbUser">{{ __('Revocar usuario') }}</span>
+                        <span wire:loading wire:target="revokeDbUser">...</span>
+                    </button>
+                </div>
+            @endif
+        </div>
+
         <!-- Bot Info -->
         <div class="border border-black/10 p-6 mb-8">
             <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-4">{{ __('Info') }}</p>

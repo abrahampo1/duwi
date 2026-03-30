@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Bot;
 use App\Models\BotLog;
 use App\Models\Deployment;
+use App\Services\DatabaseUserService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -35,6 +36,13 @@ class BotProcessService
         }
 
         $envVars = $this->parseEnvVars($bot->env_vars);
+
+        // Inject database credentials if bot has a DB user
+        if ($bot->db_user && $bot->db_password) {
+            $dbService = app(DatabaseUserService::class);
+            $dbEnv = $dbService->getConnectionEnv($bot);
+            $envVars = array_merge($dbEnv, $envVars);
+        }
 
         if (!empty($envVars)) {
             $envContent = '';

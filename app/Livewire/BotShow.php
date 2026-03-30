@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Bot;
 use App\Models\Deployment;
 use App\Services\BotProcessService;
+use App\Services\DatabaseUserService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -128,12 +129,74 @@ class BotShow extends Component
         $this->bot->refresh();
     }
 
+    public function createDbUser(): void
+    {
+        $dbService = app(DatabaseUserService::class);
+
+        if (!$dbService->isSupported()) {
+            $this->notify(__('El driver actual (:driver) no soporta usuarios de base de datos.', ['driver' => $dbService->getDriverLabel()]), 'error');
+            return;
+        }
+
+        if ($this->bot->db_user) {
+            $this->notify(__('Este bot ya tiene un usuario de base de datos.'), 'error');
+            return;
+        }
+
+        try {
+            $credentials = $dbService->createUser($this->bot);
+
+            $this->bot->update([
+                'db_user' => $credentials['username'],
+                'db_password' => $credentials['password'],
+                'db_name' => $credentials['database'],
+            ]);
+
+            $this->notify(__('Usuario de base de datos creado: :user', ['user' => $credentials['username']]));
+        } catch (\Exception $e) {
+            $this->notify(__('Error al crear usuario de BD: :error', ['error' => $e->getMessage()]), 'error');
+        }
+    }
+
+    public function revokeDbUser(): void
+    {
+        $dbService = app(DatabaseUserService::class);
+
+        if (!$this->bot->db_user) {
+            $this->notify(__('Este bot no tiene usuario de base de datos.'), 'error');
+            return;
+        }
+
+        try {
+            $dbService->dropUser($this->bot);
+
+            $this->bot->update([
+                'db_user' => null,
+                'db_password' => null,
+                'db_name' => null,
+            ]);
+
+            $this->notify(__('Usuario de base de datos revocado.'));
+        } catch (\Exception $e) {
+            $this->notify(__('Error al revocar usuario de BD: :error', ['error' => $e->getMessage()]), 'error');
+        }
+    }
+
     public function deleteBot(): void
     {
         $service = app(BotProcessService::class);
 
         if ($this->bot->isRunning()) {
             $service->stop($this->bot);
+        }
+
+        // Clean up database user if exists
+        if ($this->bot->db_user) {
+            try {
+                app(DatabaseUserService::class)->dropUser($this->bot);
+            } catch (\Exception $e) {
+                // Log but don't block deletion
+            }
         }
 
         $fullPath = $this->bot->getFullPath();
@@ -164,10 +227,14 @@ class BotShow extends Component
             $currentCommit = $service->getCurrentCommit($this->bot);
         }
 
+        $dbService = app(DatabaseUserService::class);
+
         return view('livewire.bot-show', [
             'logs' => $logs,
             'deployments' => $deployments,
             'currentCommit' => $currentCommit,
+            'dbSupported' => $dbService->isSupported(),
+            'dbDriverLabel' => $dbService->getDriverLabel(),
         ]);
     }
 

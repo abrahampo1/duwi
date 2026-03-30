@@ -55,7 +55,7 @@ class BotList extends Component
 
     public function render()
     {
-        $bots = Auth::user()->bots()->latest()->get();
+        $bots = Auth::user()->bots()->with('latestDeployment')->latest()->get();
         return view('livewire.bot-list', ['bots' => $bots]);
     }
 

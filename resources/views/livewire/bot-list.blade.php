@@ -40,6 +40,15 @@
                 <a href="{{ route('bots.show', $bot) }}" class="text-sm hover:text-black/50 transition-colors">{{ $bot->name }}</a>
                 <span class="text-[10px] uppercase tracking-[0.15em] text-black/20">{{ $bot->deploy_method }}</span>
                 <span class="text-[10px] text-black/20 font-mono">{{ $bot->entry_file }}</span>
+                @if($bot->latestDeployment)
+                    <span class="text-[10px] font-mono
+                        {{ match($bot->latestDeployment->status) {
+                            'success' => 'text-green-600',
+                            'failed', 'rolled_back' => 'text-red-500',
+                            'running', 'verifying', 'pending' => 'text-black/40',
+                            default => 'text-black/20',
+                        } }}">{{ $bot->latestDeployment->status }}{{ $bot->latestDeployment->shortCommit() ? ' · ' . $bot->latestDeployment->shortCommit() : '' }}</span>
+                @endif
             </div>
 
             <div class="flex items-center gap-3">
