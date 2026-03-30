@@ -27,6 +27,23 @@ class RuntimeManager
         return $this->resolve('git');
     }
 
+    /**
+     * Return env array with PATH prepended so that #!/usr/bin/env node works.
+     */
+    public function env(): array
+    {
+        $nodeBin = $this->nodePath();
+        $binDir = dirname($nodeBin);
+
+        $path = getenv('PATH') ?: '';
+        if (!str_contains($path, $binDir)) {
+            $separator = $this->isWindows() ? ';' : ':';
+            $path = $binDir . $separator . $path;
+        }
+
+        return ['PATH' => $path];
+    }
+
     public function check(): array
     {
         Cache::forget(self::CACHE_KEY);

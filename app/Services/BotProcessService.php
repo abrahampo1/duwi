@@ -43,9 +43,12 @@ class BotProcessService
             file_put_contents($botPath . '/.env', $envContent);
         }
 
+        $runtimeEnv = $this->runtime->env();
+        $envVars = array_merge($runtimeEnv, $envVars);
+
         $envString = '';
         foreach ($envVars as $key => $value) {
-            $envString .= "$key=$value ";
+            $envString .= "$key=\"$value\" ";
         }
 
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
@@ -181,7 +184,7 @@ class BotProcessService
         $bot->update(['status' => 'deploying']);
 
         $npmBin = $this->runtime->npmPath();
-        $result = Process::path($botPath)->timeout(300)->run("\"{$npmBin}\" install 2>&1");
+        $result = Process::path($botPath)->env($this->runtime->env())->timeout(300)->run("\"{$npmBin}\" install 2>&1");
         $output = $result->output();
 
         if ($result->successful()) {
