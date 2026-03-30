@@ -73,6 +73,7 @@ class RuntimeManager
     {
         $nodePath = $this->findBinary('node');
         if ($nodePath) {
+            $this->ensurePortablePackageJson();
             return true;
         }
 
@@ -111,6 +112,7 @@ class RuntimeManager
         // Check portable install first (within storage/, always accessible)
         $portablePath = $this->getPortablePath($binary);
         if ($portablePath && file_exists($portablePath)) {
+            $this->ensurePortablePackageJson();
             return $portablePath;
         }
 
@@ -210,6 +212,19 @@ class RuntimeManager
         return storage_path('app/runtime/node');
     }
 
+    /**
+     * Ensure the portable node dir has a package.json with "type":"commonjs"
+     * so that npm scripts are not treated as ESM by a parent "type":"module".
+     */
+    private function ensurePortablePackageJson(): void
+    {
+        $dir = $this->portableDir();
+        $file = $dir . DIRECTORY_SEPARATOR . 'package.json';
+        if (File::isDirectory($dir) && !file_exists($file)) {
+            File::put($file, '{"type":"commonjs"}' . "\n");
+        }
+    }
+
     private function installPortableNode(): bool
     {
         $targetDir = $this->portableDir();
@@ -282,6 +297,9 @@ class RuntimeManager
         }
 
         @unlink($tempFile);
+
+        // Prevent the parent project's "type":"module" from affecting npm scripts
+        File::put("{$targetDir}/package.json", '{"type":"commonjs"}' . "\n");
 
         // Clear cache so paths are re-detected
         Cache::forget(self::CACHE_KEY);
