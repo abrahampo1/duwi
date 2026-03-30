@@ -29,15 +29,11 @@ class Bot extends Model
         'path',
         'env_vars',
         'last_started_at',
-        'db_user',
-        'db_password',
-        'db_name',
     ];
 
     protected $hidden = [
         'deploy_key',
         'webhook_secret',
-        'db_password',
     ];
 
     protected function casts(): array
@@ -47,7 +43,6 @@ class Bot extends Model
             'last_webhook_at' => 'datetime',
             'deploy_key' => 'encrypted',
             'webhook_secret' => 'encrypted',
-            'db_password' => 'encrypted',
             'auto_deploy' => 'boolean',
         ];
     }

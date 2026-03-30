@@ -5,7 +5,6 @@ namespace App\Livewire;
 use App\Models\Bot;
 use App\Models\Deployment;
 use App\Services\BotProcessService;
-use App\Services\DatabaseUserService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -20,6 +19,7 @@ class BotShow extends Component
     public string $consoleOutput = '';
     public string $notification = '';
     public string $notificationType = 'success';
+    public array $envVars = [];
 
     #[Url(as: 'tab')]
     public string $activeTab = 'general';
@@ -32,6 +32,7 @@ class BotShow extends Component
 
         $this->bot = $bot;
         $this->syncAndLoad();
+        $this->loadEnvVars();
     }
 
     public function setTab(string $tab): void
@@ -129,57 +130,31 @@ class BotShow extends Component
         $this->bot->refresh();
     }
 
-    public function createDbUser(): void
+    public function addEnvVar(): void
     {
-        $dbService = app(DatabaseUserService::class);
-
-        if (!$dbService->isSupported()) {
-            $this->notify(__('El driver actual (:driver) no soporta usuarios de base de datos.', ['driver' => $dbService->getDriverLabel()]), 'error');
-            return;
-        }
-
-        if ($this->bot->db_user) {
-            $this->notify(__('Este bot ya tiene un usuario de base de datos.'), 'error');
-            return;
-        }
-
-        try {
-            $credentials = $dbService->createUser($this->bot);
-
-            $this->bot->update([
-                'db_user' => $credentials['username'],
-                'db_password' => $credentials['password'],
-                'db_name' => $credentials['database'],
-            ]);
-
-            $this->notify(__('Usuario de base de datos creado: :user', ['user' => $credentials['username']]));
-        } catch (\Exception $e) {
-            $this->notify(__('Error al crear usuario de BD: :error', ['error' => $e->getMessage()]), 'error');
-        }
+        $this->envVars[] = ['key' => '', 'value' => ''];
     }
 
-    public function revokeDbUser(): void
+    public function removeEnvVar(int $index): void
     {
-        $dbService = app(DatabaseUserService::class);
+        unset($this->envVars[$index]);
+        $this->envVars = array_values($this->envVars);
+    }
 
-        if (!$this->bot->db_user) {
-            $this->notify(__('Este bot no tiene usuario de base de datos.'), 'error');
-            return;
+    public function saveEnvVars(): void
+    {
+        $lines = [];
+        foreach ($this->envVars as $var) {
+            $key = trim($var['key'] ?? '');
+            $value = $var['value'] ?? '';
+            if ($key !== '') {
+                $lines[] = "{$key}={$value}";
+            }
         }
 
-        try {
-            $dbService->dropUser($this->bot);
-
-            $this->bot->update([
-                'db_user' => null,
-                'db_password' => null,
-                'db_name' => null,
-            ]);
-
-            $this->notify(__('Usuario de base de datos revocado.'));
-        } catch (\Exception $e) {
-            $this->notify(__('Error al revocar usuario de BD: :error', ['error' => $e->getMessage()]), 'error');
-        }
+        $this->bot->update(['env_vars' => implode("\n", $lines) ?: null]);
+        $this->loadEnvVars();
+        $this->notify(__('Variables de entorno guardadas.'));
     }
 
     public function deleteBot(): void
@@ -188,15 +163,6 @@ class BotShow extends Component
 
         if ($this->bot->isRunning()) {
             $service->stop($this->bot);
-        }
-
-        // Clean up database user if exists
-        if ($this->bot->db_user) {
-            try {
-                app(DatabaseUserService::class)->dropUser($this->bot);
-            } catch (\Exception $e) {
-                // Log but don't block deletion
-            }
         }
 
         $fullPath = $this->bot->getFullPath();
@@ -227,14 +193,10 @@ class BotShow extends Component
             $currentCommit = $service->getCurrentCommit($this->bot);
         }
 
-        $dbService = app(DatabaseUserService::class);
-
         return view('livewire.bot-show', [
             'logs' => $logs,
             'deployments' => $deployments,
             'currentCommit' => $currentCommit,
-            'dbSupported' => $dbService->isSupported(),
-            'dbDriverLabel' => $dbService->getDriverLabel(),
         ]);
     }
 
@@ -244,6 +206,20 @@ class BotShow extends Component
         $service->syncStatus($this->bot);
         $this->bot->refresh();
         $this->consoleOutput = $service->getRecentOutput($this->bot);
+    }
+
+    private function loadEnvVars(): void
+    {
+        $this->envVars = [];
+        if ($this->bot->env_vars) {
+            foreach (explode("\n", $this->bot->env_vars) as $line) {
+                $line = trim($line);
+                if ($line && str_contains($line, '=')) {
+                    [$key, $value] = explode('=', $line, 2);
+                    $this->envVars[] = ['key' => trim($key), 'value' => $value];
+                }
+            }
+        }
     }
 
     private function notify(string $message, string $type = 'success'): void
