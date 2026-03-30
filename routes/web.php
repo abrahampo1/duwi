@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Livewire\BotConsole;
 use App\Livewire\BotList;
 use App\Livewire\BotShow;
+use App\Livewire\AccountSettings;
 use App\Livewire\UserManagement;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/bots/{bot}/console', BotConsole::class)->name('bots.console');
 
     Route::post('/generate-ssh-key', [BotController::class, 'generateSshKey'])->name('generate-ssh-key');
+
+    // Account
+    Route::get('/account', AccountSettings::class)->name('account.settings');
 
     // Admin
     Route::middleware('admin')->group(function () {

@@ -38,7 +38,7 @@
                     </div>
                     <div class="flex items-center gap-5">
                         <x-language-switcher />
-                        <span class="text-xs text-black/40">{{ Auth::user()->name }}</span>
+                        <a href="{{ route('account.settings') }}" class="text-xs {{ request()->routeIs('account.*') ? 'text-black' : 'text-black/40 hover:text-black' }}">{{ Auth::user()->name }}</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="text-xs uppercase tracking-[0.15em] text-black/40 hover:text-black">
