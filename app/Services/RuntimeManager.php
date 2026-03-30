@@ -17,9 +17,16 @@ class RuntimeManager
         return $this->resolve('node');
     }
 
-    public function npmPath(): string
+    /**
+     * Return the npm command prefix (may be multiple args: node + npm-cli.js).
+     * Always invokes npm through node to avoid ESM shebang issues.
+     */
+    public function npmCommand(): string
     {
-        return $this->resolve('npm');
+        $nodeBin = $this->nodePath();
+        $npmCli = $this->resolveNpmCli();
+
+        return "\"{$nodeBin}\" \"{$npmCli}\"";
     }
 
     public function gitPath(): string
@@ -73,11 +80,50 @@ class RuntimeManager
     {
         $nodePath = $this->findBinary('node');
         if ($nodePath) {
-            $this->ensurePortablePackageJson();
             return true;
         }
 
         return $this->installPortableNode();
+    }
+
+    /**
+     * Find npm-cli.js which lives inside npm's own package (always CJS).
+     */
+    private function resolveNpmCli(): string
+    {
+        // Portable install: npm-cli.js is at a known location
+        $portableDir = $this->portableDir();
+        $portableCli = $portableDir . '/lib/node_modules/npm/bin/npm-cli.js';
+        if (file_exists($portableCli)) {
+            return $portableCli;
+        }
+
+        // Windows portable
+        $portableCliWin = $portableDir . '\\node_modules\\npm\\bin\\npm-cli.js';
+        if ($this->isWindows() && file_exists($portableCliWin)) {
+            return $portableCliWin;
+        }
+
+        // System npm: find it via the npm binary path
+        $npmPath = $this->resolve('npm');
+        $dir = dirname($npmPath);
+
+        // Standard layout: /usr/lib/node_modules/npm/bin/npm-cli.js
+        // or relative to bin: ../lib/node_modules/npm/bin/npm-cli.js
+        $candidates = [
+            dirname($dir) . '/lib/node_modules/npm/bin/npm-cli.js',
+            $dir . '/../lib/node_modules/npm/bin/npm-cli.js',
+        ];
+
+        foreach ($candidates as $candidate) {
+            $real = realpath($candidate);
+            if ($real && file_exists($real)) {
+                return $real;
+            }
+        }
+
+        // Fallback: just return the npm binary and hope for the best
+        return $npmPath;
     }
 
     private function resolve(string $binary): string
@@ -112,7 +158,6 @@ class RuntimeManager
         // Check portable install first (within storage/, always accessible)
         $portablePath = $this->getPortablePath($binary);
         if ($portablePath && file_exists($portablePath)) {
-            $this->ensurePortablePackageJson();
             return $portablePath;
         }
 
@@ -212,19 +257,6 @@ class RuntimeManager
         return storage_path('app/runtime/node');
     }
 
-    /**
-     * Ensure the portable node dir has a package.json with "type":"commonjs"
-     * so that npm scripts are not treated as ESM by a parent "type":"module".
-     */
-    private function ensurePortablePackageJson(): void
-    {
-        $dir = $this->portableDir();
-        $file = $dir . DIRECTORY_SEPARATOR . 'package.json';
-        if (File::isDirectory($dir) && !file_exists($file)) {
-            File::put($file, '{"type":"commonjs"}' . "\n");
-        }
-    }
-
     private function installPortableNode(): bool
     {
         $targetDir = $this->portableDir();
@@ -297,9 +329,6 @@ class RuntimeManager
         }
 
         @unlink($tempFile);
-
-        // Prevent the parent project's "type":"module" from affecting npm scripts
-        File::put("{$targetDir}/package.json", '{"type":"commonjs"}' . "\n");
 
         // Clear cache so paths are re-detected
         Cache::forget(self::CACHE_KEY);

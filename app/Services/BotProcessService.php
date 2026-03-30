@@ -183,8 +183,8 @@ class BotProcessService
         $this->log($bot, 'system', __('Instalando dependencias npm...'));
         $bot->update(['status' => 'deploying']);
 
-        $npmBin = $this->runtime->npmPath();
-        $result = Process::path($botPath)->env($this->runtime->env())->timeout(300)->run("\"{$npmBin}\" install 2>&1");
+        $npmCmd = $this->runtime->npmCommand();
+        $result = Process::path($botPath)->env($this->runtime->env())->timeout(300)->run("{$npmCmd} install 2>&1");
         $output = $result->output();
 
         if ($result->successful()) {
