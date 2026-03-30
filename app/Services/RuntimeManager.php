@@ -250,6 +250,14 @@ class RuntimeManager
                 }
                 File::copyDirectory($sourceDir, $targetDir);
                 File::deleteDirectory($sourceDir);
+
+                // Ensure binaries are executable (copyDirectory doesn't preserve permissions)
+                foreach (['bin/node', 'bin/npm', 'bin/npx'] as $bin) {
+                    $binPath = "{$targetDir}/{$bin}";
+                    if (file_exists($binPath)) {
+                        chmod($binPath, 0755);
+                    }
+                }
             }
         }
 
