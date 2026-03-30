@@ -67,7 +67,7 @@ class RuntimeManager
         $paths = Cache::get(self::CACHE_KEY, []);
 
         if (!empty($paths[$binary])) {
-            if (file_exists($paths[$binary]) || $this->isExecutable($paths[$binary])) {
+            if ($this->binaryExists($paths[$binary])) {
                 return $paths[$binary];
             }
         }
@@ -91,48 +91,51 @@ class RuntimeManager
     {
         $isWindows = $this->isWindows();
 
-        // Check portable install first
+        // Check portable install first (within storage/, always accessible)
         $portablePath = $this->getPortablePath($binary);
         if ($portablePath && file_exists($portablePath)) {
             return $portablePath;
         }
 
         // Use where/which to find in PATH
+        // On Plesk, open_basedir blocks PHP's file_exists() for system paths,
+        // so we rely on shell commands to verify binaries instead.
         if ($isWindows) {
             $suffix = in_array($binary, ['npm']) ? '.cmd' : '.exe';
             $result = Process::run("where {$binary}{$suffix} 2>NUL");
             if ($result->successful()) {
                 $firstLine = strtok(trim($result->output()), "\n");
-                if ($firstLine && @file_exists(trim($firstLine))) {
+                if ($firstLine) {
                     return trim($firstLine);
                 }
             }
-            // Try without suffix
             $result = Process::run("where {$binary} 2>NUL");
             if ($result->successful()) {
                 $lines = explode("\n", trim($result->output()));
                 foreach ($lines as $line) {
                     $line = trim($line);
-                    if ($line && @file_exists($line) && (str_ends_with($line, '.exe') || str_ends_with($line, '.cmd'))) {
+                    if ($line && (str_ends_with($line, '.exe') || str_ends_with($line, '.cmd'))) {
                         return $line;
                     }
                 }
             }
         } else {
+            // `which` only returns existing executables, no need for file_exists()
             $result = Process::run("which {$binary} 2>/dev/null");
             if ($result->successful()) {
                 $path = trim($result->output());
-                if ($path && @file_exists($path)) {
+                if ($path) {
                     return $path;
                 }
             }
-        }
 
-        // Check common locations
-        $commonPaths = $this->getCommonPaths($binary);
-        foreach ($commonPaths as $path) {
-            if (@file_exists($path)) {
-                return $path;
+            // Check common locations using shell test -x (bypasses open_basedir)
+            $commonPaths = $this->getCommonPaths($binary);
+            foreach ($commonPaths as $path) {
+                $check = Process::run("test -x \"{$path}\" && echo ok 2>/dev/null");
+                if (trim($check->output()) === 'ok') {
+                    return $path;
+                }
             }
         }
 
@@ -276,11 +279,16 @@ class RuntimeManager
         return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
     }
 
-    private function isExecutable(string $path): bool
+    /**
+     * Check if a binary exists, using shell test on Linux to bypass open_basedir.
+     */
+    private function binaryExists(string $path): bool
     {
         if ($this->isWindows()) {
-            return str_ends_with($path, '.exe') || str_ends_with($path, '.cmd') || str_ends_with($path, '.bat');
+            return @file_exists($path);
         }
-        return is_executable($path);
+
+        $result = Process::run("test -x \"{$path}\" && echo ok 2>/dev/null");
+        return trim($result->output()) === 'ok';
     }
 }
