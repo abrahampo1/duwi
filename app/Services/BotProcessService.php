@@ -10,6 +10,13 @@ use Illuminate\Support\Str;
 
 class BotProcessService
 {
+    private RuntimeManager $runtime;
+
+    public function __construct(RuntimeManager $runtime)
+    {
+        $this->runtime = $runtime;
+    }
+
     public function start(Bot $bot): bool
     {
         if ($bot->isRunning()) {
@@ -44,9 +51,10 @@ class BotProcessService
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
         $logFile = $botPath . '/bot_output.log';
         $errorLogFile = $botPath . '/bot_error.log';
+        $nodeBin = $this->runtime->nodePath();
 
         if ($isWindows) {
-            $cmd = "start /B node \"{$fullEntry}\" > \"{$logFile}\" 2> \"{$errorLogFile}\"";
+            $cmd = "start /B \"{$nodeBin}\" \"{$fullEntry}\" > \"{$logFile}\" 2> \"{$errorLogFile}\"";
             pclose(popen($cmd, 'r'));
 
             sleep(1);
@@ -59,7 +67,7 @@ class BotProcessService
                 $pid = (int) trim($result->output());
             }
         } else {
-            $cmd = "cd \"{$botPath}\" && {$envString}nohup node \"{$entryFile}\" > \"{$logFile}\" 2> \"{$errorLogFile}\" & echo $!";
+            $cmd = "cd \"{$botPath}\" && {$envString}nohup \"{$nodeBin}\" \"{$entryFile}\" > \"{$logFile}\" 2> \"{$errorLogFile}\" & echo $!";
             $result = Process::run($cmd);
             $pid = (int) trim($result->output());
         }
@@ -172,7 +180,8 @@ class BotProcessService
         $this->log($bot, 'system', __('Instalando dependencias npm...'));
         $bot->update(['status' => 'deploying']);
 
-        $result = Process::path($botPath)->timeout(300)->run('npm install 2>&1');
+        $npmBin = $this->runtime->npmPath();
+        $result = Process::path($botPath)->timeout(300)->run("\"{$npmBin}\" install 2>&1");
         $output = $result->output();
 
         if ($result->successful()) {
@@ -203,7 +212,8 @@ class BotProcessService
             }
 
             $clonePath = str_replace('\\', '/', $fullPath);
-            $result = Process::env($env)->timeout(120)->run("git clone \"{$repoUrl}\" \"{$clonePath}\" 2>&1");
+            $gitBin = $this->runtime->gitPath();
+            $result = Process::env($env)->timeout(120)->run("\"{$gitBin}\" clone \"{$repoUrl}\" \"{$clonePath}\" 2>&1");
 
             if (!$result->successful()) {
                 throw new \RuntimeException(__('Git clone fallo: :output', ['output' => $result->output()]));
@@ -242,7 +252,8 @@ class BotProcessService
                 $this->writeDeployKeyToBot($bot);
             }
 
-            $result = Process::path($fullPath)->timeout(120)->run('git pull 2>&1');
+            $gitBin = $this->runtime->gitPath();
+            $result = Process::path($fullPath)->timeout(120)->run("\"{$gitBin}\" pull 2>&1");
 
             if ($result->successful()) {
                 $this->installDependencies($bot);
@@ -303,8 +314,9 @@ class BotProcessService
 
         $absKeyPath = str_replace('\\', '/', realpath($botKeyPath) ?: $botKeyPath);
 
+        $gitBin = $this->runtime->gitPath();
         Process::path($fullPath)->run(
-            "git config core.sshCommand \"ssh -i \\\"{$absKeyPath}\\\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\""
+            "\"{$gitBin}\" config core.sshCommand \"ssh -i \\\"{$absKeyPath}\\\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\""
         );
     }
 
