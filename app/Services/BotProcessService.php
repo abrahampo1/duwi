@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Bot;
 use App\Models\BotLog;
+use App\Models\Deployment;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -236,7 +237,7 @@ class BotProcessService
         }
     }
 
-    public function redeploy(Bot $bot): array
+    public function redeploy(Bot $bot, string $triggeredBy = 'manual'): array
     {
         if ($bot->deploy_method !== 'github' || !$bot->repo_url) {
             return ['success' => false, 'message' => __('Este bot no usa GitHub.')];
@@ -256,12 +257,48 @@ class BotProcessService
             }
 
             $gitBin = $this->runtime->gitPath();
+
+            // Get current commit before pull
+            $prevResult = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+            $previousCommit = trim($prevResult->output());
+            if (!$prevResult->successful() || strlen($previousCommit) !== 40) {
+                $previousCommit = null;
+            }
+
             $result = Process::path($fullPath)->timeout(120)->run("\"{$gitBin}\" pull 2>&1");
 
             if ($result->successful()) {
+                // Get new commit hash and message
+                $hashResult = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+                $commitHash = trim($hashResult->output());
+                $msgResult = Process::path($fullPath)->run("\"{$gitBin}\" log -1 --pretty=%s 2>&1");
+                $commitMessage = trim($msgResult->output());
+
+                $deployment = $this->createDeployment($bot, [
+                    'commit_hash' => strlen($commitHash) === 40 ? $commitHash : null,
+                    'commit_message' => $commitMessage ?: null,
+                    'previous_commit' => $previousCommit,
+                    'triggered_by' => $triggeredBy,
+                    'status' => 'running',
+                    'started_at' => now(),
+                ]);
+
                 $this->installDependencies($bot);
-                $this->log($bot, 'system', __('Repositorio actualizado (git pull)'));
-                return ['success' => true, 'message' => __('Repositorio actualizado.')];
+                $bot->refresh();
+
+                if ($bot->status === 'error') {
+                    $deployment->update(['status' => 'failed', 'output' => __('npm install fallo'), 'finished_at' => now()]);
+                    return ['success' => false, 'message' => __('Error al actualizar: npm install fallo')];
+                }
+
+                // Verify bot starts
+                $verifyResult = $this->verifyBotStarts($bot, $deployment);
+                if ($verifyResult) {
+                    $this->log($bot, 'system', __('Repositorio actualizado (git pull)'));
+                    return ['success' => true, 'message' => __('Deploy verificado y exitoso.')];
+                }
+
+                return ['success' => false, 'message' => __('El bot no arranco correctamente tras el deploy.')];
             }
 
             $bot->update(['status' => 'error']);
@@ -278,6 +315,23 @@ class BotProcessService
 
         try {
             $this->deployFromGithub($bot, $bot->repo_url);
+
+            // Record initial deployment
+            $gitBin = $this->runtime->gitPath();
+            $hashResult = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+            $commitHash = trim($hashResult->output());
+            $msgResult = Process::path($fullPath)->run("\"{$gitBin}\" log -1 --pretty=%s 2>&1");
+            $commitMessage = trim($msgResult->output());
+
+            $this->createDeployment($bot, [
+                'commit_hash' => strlen($commitHash) === 40 ? $commitHash : null,
+                'commit_message' => $commitMessage ?: null,
+                'triggered_by' => $triggeredBy,
+                'status' => 'success',
+                'started_at' => now(),
+                'finished_at' => now(),
+            ]);
+
             return ['success' => true, 'message' => __('Repositorio clonado correctamente.')];
         } catch (\Exception $e) {
             $bot->update(['status' => 'error']);
@@ -301,7 +355,7 @@ class BotProcessService
         $fullPath = $bot->getFullPath();
 
         if (!File::isDirectory($fullPath . '/.git')) {
-            return $this->redeploy($bot);
+            return $this->redeploy($bot, 'webhook');
         }
 
         $gitBin = $this->runtime->gitPath();
@@ -311,7 +365,7 @@ class BotProcessService
         $previousCommit = trim($result->output());
 
         if (!$result->successful() || strlen($previousCommit) !== 40) {
-            return $this->redeploy($bot);
+            return $this->redeploy($bot, 'webhook');
         }
 
         $bot->update(['status' => 'deploying']);
@@ -326,26 +380,204 @@ class BotProcessService
 
         if (!$result->successful()) {
             $this->log($bot, 'stderr', __('Error al actualizar: :output', ['output' => $result->output()]));
+
+            $deployment = $this->createDeployment($bot, [
+                'previous_commit' => $previousCommit,
+                'triggered_by' => 'webhook',
+                'status' => 'failed',
+                'output' => 'git pull failed: ' . $result->output(),
+                'started_at' => now(),
+                'finished_at' => now(),
+            ]);
+
             $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
             return ['success' => false, 'message' => __('Git pull fallo, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
         }
+
+        // Get new commit info
+        $hashResult = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+        $commitHash = trim($hashResult->output());
+        $msgResult = Process::path($fullPath)->run("\"{$gitBin}\" log -1 --pretty=%s 2>&1");
+        $commitMessage = trim($msgResult->output());
+
+        $deployment = $this->createDeployment($bot, [
+            'commit_hash' => strlen($commitHash) === 40 ? $commitHash : null,
+            'commit_message' => $commitMessage ?: null,
+            'previous_commit' => $previousCommit,
+            'triggered_by' => 'webhook',
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
 
         // Install dependencies
         $this->installDependencies($bot);
         $bot->refresh();
 
         if ($bot->status === 'error') {
+            $deployment->update(['status' => 'failed', 'output' => 'npm install failed', 'finished_at' => now()]);
             $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
             return ['success' => false, 'message' => __('npm install fallo, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
         }
 
-        $this->log($bot, 'system', __('Auto-deploy exitoso (webhook)'));
+        // Verify bot starts correctly
+        $deployment->update(['status' => 'verifying']);
+        $this->log($bot, 'system', __('Verificando que el bot arranca...'));
 
-        if ($wasRunning) {
-            $this->start($bot);
+        $started = $this->start($bot);
+        if (!$started) {
+            $deployment->update(['status' => 'failed', 'output' => __('El bot no pudo arrancar'), 'finished_at' => now()]);
+            $this->log($bot, 'stderr', __('Verificacion fallida: el bot no arranco'));
+            $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
+
+            if ($wasRunning) {
+                $this->start($bot);
+            }
+
+            return ['success' => false, 'message' => __('El bot no arranco, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
         }
 
-        return ['success' => true, 'message' => __('Deploy exitoso.')];
+        // Wait and check if process stays alive
+        sleep(3);
+        $bot->refresh();
+
+        if (!$this->isProcessRunning($bot)) {
+            $deployment->update([
+                'status' => 'failed',
+                'output' => __('El bot se detuvo tras arrancar'),
+                'finished_at' => now(),
+            ]);
+            $this->log($bot, 'stderr', __('Verificacion fallida: el bot se detuvo tras arrancar'));
+            $bot->update(['status' => 'stopped', 'pid' => null]);
+            $this->rollback($bot, $fullPath, $gitBin, $previousCommit);
+
+            if ($wasRunning) {
+                $this->start($bot);
+            }
+
+            return ['success' => false, 'message' => __('El bot se detuvo, rollback a :commit', ['commit' => substr($previousCommit, 0, 7)])];
+        }
+
+        // Deploy verified!
+        $deployment->update(['status' => 'success', 'finished_at' => now()]);
+        $this->log($bot, 'system', __('Deploy verificado y exitoso (webhook)'));
+
+        if (!$wasRunning) {
+            $this->stop($bot);
+        }
+
+        return ['success' => true, 'message' => __('Deploy verificado y exitoso.')];
+    }
+
+    /**
+     * Verify bot starts after a manual deploy (redeploy).
+     * Returns true if verification passed.
+     */
+    private function verifyBotStarts(Bot $bot, Deployment $deployment): bool
+    {
+        $deployment->update(['status' => 'verifying']);
+        $this->log($bot, 'system', __('Verificando que el bot arranca...'));
+
+        $started = $this->start($bot);
+        if (!$started) {
+            $deployment->update(['status' => 'failed', 'output' => __('El bot no pudo arrancar'), 'finished_at' => now()]);
+            $this->log($bot, 'stderr', __('Verificacion fallida: el bot no arranco'));
+            return false;
+        }
+
+        sleep(3);
+        $bot->refresh();
+
+        if (!$this->isProcessRunning($bot)) {
+            $deployment->update([
+                'status' => 'failed',
+                'output' => __('El bot se detuvo tras arrancar'),
+                'finished_at' => now(),
+            ]);
+            $this->log($bot, 'stderr', __('Verificacion fallida: el bot se detuvo tras arrancar'));
+            $bot->update(['status' => 'stopped', 'pid' => null]);
+            return false;
+        }
+
+        // Verification passed - stop the bot (user can start manually)
+        $this->stop($bot);
+        $deployment->update(['status' => 'success', 'finished_at' => now()]);
+        $this->log($bot, 'system', __('Verificacion exitosa: el bot arranca correctamente'));
+        return true;
+    }
+
+    /**
+     * Rollback to a specific deployment by commit hash.
+     */
+    public function rollbackToDeployment(Bot $bot, Deployment $deployment): array
+    {
+        if (!$deployment->commit_hash) {
+            return ['success' => false, 'message' => __('Este deploy no tiene commit hash.')];
+        }
+
+        $fullPath = $bot->getFullPath();
+        if (!File::isDirectory($fullPath . '/.git')) {
+            return ['success' => false, 'message' => __('No hay repositorio git en este bot.')];
+        }
+
+        $wasRunning = $bot->isRunning();
+        if ($wasRunning) {
+            $this->stop($bot);
+        }
+
+        $gitBin = $this->runtime->gitPath();
+
+        // Get current commit
+        $currentResult = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+        $currentCommit = trim($currentResult->output());
+
+        $rollbackDeployment = $this->createDeployment($bot, [
+            'commit_hash' => $deployment->commit_hash,
+            'commit_message' => 'Rollback → ' . $deployment->shortCommit(),
+            'previous_commit' => strlen($currentCommit) === 40 ? $currentCommit : null,
+            'triggered_by' => 'rollback',
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
+        $this->log($bot, 'system', __('Rollback manual a :commit...', ['commit' => $deployment->shortCommit()]));
+        $bot->update(['status' => 'deploying']);
+
+        $result = Process::path($fullPath)->run("\"{$gitBin}\" reset --hard {$deployment->commit_hash} 2>&1");
+
+        if (!$result->successful()) {
+            $rollbackDeployment->update([
+                'status' => 'failed',
+                'output' => $result->output(),
+                'finished_at' => now(),
+            ]);
+            $bot->update(['status' => 'error']);
+            $this->log($bot, 'stderr', __('Rollback fallo: :output', ['output' => $result->output()]));
+            return ['success' => false, 'message' => __('Rollback fallo: :output', ['output' => $result->output()])];
+        }
+
+        $this->installDependencies($bot);
+        $bot->refresh();
+
+        if ($bot->status === 'error') {
+            $rollbackDeployment->update([
+                'status' => 'failed',
+                'output' => 'npm install failed after rollback',
+                'finished_at' => now(),
+            ]);
+            return ['success' => false, 'message' => __('Rollback completo pero npm install fallo')];
+        }
+
+        // Verify the rolled-back version works
+        $verifyResult = $this->verifyBotStarts($bot, $rollbackDeployment);
+
+        if ($verifyResult) {
+            if ($wasRunning) {
+                $this->start($bot);
+            }
+            return ['success' => true, 'message' => __('Rollback verificado a :commit', ['commit' => $deployment->shortCommit()])];
+        }
+
+        return ['success' => false, 'message' => __('Rollback a :commit completado pero verificacion fallo', ['commit' => $deployment->shortCommit()])];
     }
 
     private function rollback(Bot $bot, string $fullPath, string $gitBin, string $commit): void
@@ -424,6 +656,28 @@ class BotProcessService
         }
 
         return $keyFile;
+    }
+
+    /**
+     * Get current commit hash for a bot.
+     */
+    public function getCurrentCommit(Bot $bot): ?string
+    {
+        $fullPath = $bot->getFullPath();
+        if (!File::isDirectory($fullPath . '/.git')) {
+            return null;
+        }
+
+        $gitBin = $this->runtime->gitPath();
+        $result = Process::path($fullPath)->run("\"{$gitBin}\" rev-parse HEAD 2>&1");
+        $hash = trim($result->output());
+
+        return ($result->successful() && strlen($hash) === 40) ? $hash : null;
+    }
+
+    private function createDeployment(Bot $bot, array $data): Deployment
+    {
+        return Deployment::create(array_merge(['bot_id' => $bot->id], $data));
     }
 
     private function log(Bot $bot, string $type, string $content): void

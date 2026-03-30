@@ -3,11 +3,13 @@
 namespace App\Livewire;
 
 use App\Models\Bot;
+use App\Models\Deployment;
 use App\Services\BotProcessService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
@@ -18,6 +20,9 @@ class BotShow extends Component
     public string $notification = '';
     public string $notificationType = 'success';
 
+    #[Url(as: 'tab')]
+    public string $activeTab = 'general';
+
     public function mount(Bot $bot): void
     {
         if ($bot->user_id !== Auth::id()) {
@@ -26,6 +31,15 @@ class BotShow extends Component
 
         $this->bot = $bot;
         $this->syncAndLoad();
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+
+        if ($tab === 'console') {
+            $this->refreshConsole();
+        }
     }
 
     public function startBot(): void
@@ -64,6 +78,7 @@ class BotShow extends Component
         $result = $service->redeploy($this->bot);
         $this->notify($result['message'], $result['success'] ? 'success' : 'error');
         $this->bot->refresh();
+        $this->activeTab = 'deploys';
     }
 
     public function installDeps(): void
@@ -101,6 +116,18 @@ class BotShow extends Component
         $this->notify($result['message'], $result['success'] ? 'success' : 'error');
     }
 
+    public function rollbackTo(int $deploymentId): void
+    {
+        $deployment = Deployment::where('id', $deploymentId)
+            ->where('bot_id', $this->bot->id)
+            ->firstOrFail();
+
+        $service = app(BotProcessService::class);
+        $result = $service->rollbackToDeployment($this->bot, $deployment);
+        $this->notify($result['message'], $result['success'] ? 'success' : 'error');
+        $this->bot->refresh();
+    }
+
     public function deleteBot(): void
     {
         $service = app(BotProcessService::class);
@@ -129,7 +156,19 @@ class BotShow extends Component
     public function render()
     {
         $logs = $this->bot->logs()->latest()->take(50)->get()->reverse();
-        return view('livewire.bot-show', ['logs' => $logs]);
+        $deployments = $this->bot->deployments()->latest()->take(20)->get();
+        $currentCommit = null;
+
+        if ($this->bot->deploy_method === 'github') {
+            $service = app(BotProcessService::class);
+            $currentCommit = $service->getCurrentCommit($this->bot);
+        }
+
+        return view('livewire.bot-show', [
+            'logs' => $logs,
+            'deployments' => $deployments,
+            'currentCommit' => $currentCommit,
+        ]);
     }
 
     private function syncAndLoad(): void

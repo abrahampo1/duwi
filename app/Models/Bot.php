@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Bot extends Model
 {
@@ -63,6 +64,16 @@ class Bot extends Model
     public function logs(): HasMany
     {
         return $this->hasMany(BotLog::class);
+    }
+
+    public function deployments(): HasMany
+    {
+        return $this->hasMany(Deployment::class);
+    }
+
+    public function lastSuccessfulDeployment(): HasOne
+    {
+        return $this->hasOne(Deployment::class)->where('status', 'success')->latest();
     }
 
     public function isRunning(): bool
