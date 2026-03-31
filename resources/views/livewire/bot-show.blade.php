@@ -10,26 +10,26 @@
     @endif
 
     <!-- Header -->
-    <div class="flex items-start justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div>
             <div class="flex items-center gap-4">
                 @if($bot->status === 'running')
-                    <span class="h-2 w-2 rounded-full bg-black"></span>
+                    <span class="h-2 w-2 rounded-full bg-black shrink-0"></span>
                 @elseif($bot->status === 'error')
-                    <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                    <span class="h-2 w-2 rounded-full bg-red-500 shrink-0"></span>
                 @elseif($bot->status === 'deploying')
-                    <span class="h-2 w-2 rounded-full bg-black/40 animate-pulse"></span>
+                    <span class="h-2 w-2 rounded-full bg-black/40 animate-pulse shrink-0"></span>
                 @else
-                    <span class="h-2 w-2 rounded-full bg-black/15"></span>
+                    <span class="h-2 w-2 rounded-full bg-black/15 shrink-0"></span>
                 @endif
-                <h1 class="font-serif text-3xl">{{ $bot->name }}</h1>
+                <h1 class="font-serif text-2xl sm:text-3xl">{{ $bot->name }}</h1>
             </div>
             @if($bot->description)
                 <p class="mt-2 text-sm text-black/40 font-light ms-6">{{ $bot->description }}</p>
             @endif
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 shrink-0">
             @if($bot->status === 'running')
                 <button wire:click="stopBot" wire:loading.attr="disabled" class="border border-black/15 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-black/40 hover:border-black hover:text-black transition-colors disabled:opacity-30">
                     <span wire:loading.remove wire:target="stopBot">Stop</span>
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Tab Navigation -->
-    <div class="border-b border-black/10 mb-8 flex items-center gap-0 -mx-1">
+    <div class="border-b border-black/10 mb-8 flex items-center gap-0 -mx-1 overflow-x-auto scrollbar-none">
         @php
             $tabs = [
                 'general' => __('General'),
@@ -63,7 +63,7 @@
         @foreach($tabs as $key => $label)
             <button
                 wire:click="setTab('{{ $key }}')"
-                class="px-4 py-3 text-[10px] uppercase tracking-[0.2em] transition-colors relative
+                class="px-3 sm:px-4 py-3 text-[10px] uppercase tracking-[0.2em] transition-colors relative whitespace-nowrap
                     {{ $activeTab === $key
                         ? 'text-black after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-black'
                         : 'text-black/30 hover:text-black/60' }}"
@@ -75,7 +75,7 @@
     @if($activeTab === 'general')
     <div>
         <!-- Info Grid -->
-        <div class="grid grid-cols-3 gap-px bg-black/10 border border-black/10 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-black/10 border border-black/10 mb-8">
             <div class="bg-white p-5">
                 <p class="text-[10px] uppercase tracking-[0.2em] text-black/30 mb-1">{{ __('Deploy') }}</p>
                 <p class="text-sm">{{ $bot->deploy_method === 'github' ? 'GitHub' : 'ZIP' }}</p>
@@ -103,7 +103,7 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="flex items-center gap-3 mb-8">
+        <div class="flex flex-wrap items-center gap-3 mb-8">
             @if($bot->deploy_method === 'github')
                 <button wire:click="redeployBot" wire:loading.attr="disabled" class="border border-black/15 px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-black/40 hover:border-black hover:text-black transition-colors disabled:opacity-30">
                     <span wire:loading.remove wire:target="redeployBot">{{ __('Pull & Deploy') }}</span>
@@ -165,11 +165,11 @@
     <!-- ==================== DEPLOYS TAB ==================== -->
     @if($activeTab === 'deploys')
     <div>
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <p class="text-[10px] uppercase tracking-[0.25em] text-black/30">{{ __('Historial de deploys') }}</p>
             @if($bot->deploy_method === 'github')
             <button wire:click="redeployBot" wire:loading.attr="disabled"
-                class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors disabled:opacity-30">
+                class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors disabled:opacity-30 self-start">
                 <span wire:loading.remove wire:target="redeployBot">{{ __('Nuevo deploy') }}</span>
                 <span wire:loading wire:target="redeployBot">{{ __('Desplegando...') }}</span>
             </button>
@@ -177,12 +177,12 @@
         </div>
 
         @if($currentCommit)
-        <div class="bg-black/[0.02] border border-black/10 p-4 mb-6 flex items-center justify-between">
-            <div>
+        <div class="bg-black/[0.02] border border-black/10 p-4 mb-6 flex items-center justify-between gap-4">
+            <div class="min-w-0">
                 <p class="text-[10px] uppercase tracking-[0.15em] text-black/30 mb-1">{{ __('Version actual') }}</p>
-                <p class="text-sm font-mono text-black/60">{{ substr($currentCommit, 0, 12) }}</p>
+                <p class="text-sm font-mono text-black/60 truncate">{{ substr($currentCommit, 0, 12) }}</p>
             </div>
-            <span class="text-[10px] uppercase tracking-[0.15em] text-black/20">HEAD</span>
+            <span class="text-[10px] uppercase tracking-[0.15em] text-black/20 shrink-0">HEAD</span>
         </div>
         @endif
 
@@ -237,7 +237,7 @@
                         <div x-data="{ open: false }" class="relative">
                             <button @click="open = !open" class="text-[10px] uppercase tracking-[0.15em] text-black/25 hover:text-black">{{ __('Output') }}</button>
                             <div x-show="open" @click.outside="open = false" x-transition
-                                class="absolute right-0 top-full mt-1 w-[540px] border border-black/10 shadow-lg z-10">
+                                class="absolute right-0 top-full mt-1 w-[calc(100vw-2rem)] sm:w-[540px] max-w-[540px] border border-black/10 shadow-lg z-10">
                                 <div class="flex items-center justify-between px-4 py-2 border-b border-black/5 bg-white">
                                     <span class="text-[9px] uppercase tracking-[0.15em] text-black/30">{{ __('Output de Node.js') }}</span>
                                     <button @click="open = false" class="text-[10px] text-black/25 hover:text-black">&times;</button>
@@ -323,14 +323,16 @@
 
                 <div x-data="{ show: false }">
                     <p class="text-[10px] uppercase tracking-[0.15em] text-black/30 mb-2">{{ __('Webhook Secret') }}</p>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                         <input :type="show ? 'text' : 'password'" readonly value="{{ $bot->webhook_secret }}"
                             class="flex-1 border-0 border-b border-black/10 bg-transparent px-0 py-1 text-xs font-mono text-black/50 focus:ring-0">
-                        <button @click="show = !show" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black" x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
-                        <button onclick="navigator.clipboard.writeText('{{ $bot->webhook_secret }}')"
-                            class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">{{ __('Copiar') }}</button>
-                        <button wire:click="regenerateWebhookSecret" wire:confirm="{{ __('Regenerar secret? El anterior dejara de funcionar.') }}"
-                            class="text-[10px] uppercase tracking-[0.15em] text-red-400 hover:text-red-600">{{ __('Regenerar') }}</button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button @click="show = !show" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black" x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
+                            <button onclick="navigator.clipboard.writeText('{{ $bot->webhook_secret }}')"
+                                class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">{{ __('Copiar') }}</button>
+                            <button wire:click="regenerateWebhookSecret" wire:confirm="{{ __('Regenerar secret? El anterior dejara de funcionar.') }}"
+                                class="text-[10px] uppercase tracking-[0.15em] text-red-400 hover:text-red-600">{{ __('Regenerar') }}</button>
+                        </div>
                     </div>
                 </div>
 
@@ -353,18 +355,20 @@
 
             <div class="space-y-2 mb-4">
                 @foreach($envVars as $index => $var)
-                <div class="flex items-center gap-2" wire:key="env-{{ $index }}">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2" wire:key="env-{{ $index }}">
                     <input type="text" wire:model="envVars.{{ $index }}.key" placeholder="KEY"
-                        class="w-1/3 bg-black/[0.02] border border-black/10 px-3 py-2 text-xs font-mono text-black/70 focus:border-black/30 focus:ring-0 uppercase placeholder:text-black/15">
-                    <span class="text-black/15">=</span>
-                    <div class="flex-1 relative" x-data="{ show: false }">
-                        <input :type="show ? 'text' : 'password'" wire:model="envVars.{{ $index }}.value" placeholder="value"
-                            class="w-full bg-black/[0.02] border border-black/10 px-3 py-2 text-xs font-mono text-black/70 focus:border-black/30 focus:ring-0 placeholder:text-black/15 pr-16">
-                        <button type="button" @click="show = !show"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] uppercase tracking-[0.1em] text-black/25 hover:text-black"
-                            x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
+                        class="w-full sm:w-1/3 bg-black/[0.02] border border-black/10 px-3 py-2 text-xs font-mono text-black/70 focus:border-black/30 focus:ring-0 uppercase placeholder:text-black/15">
+                    <span class="text-black/15 hidden sm:inline">=</span>
+                    <div class="flex-1 flex items-center gap-2">
+                        <div class="flex-1 relative" x-data="{ show: false }">
+                            <input :type="show ? 'text' : 'password'" wire:model="envVars.{{ $index }}.value" placeholder="value"
+                                class="w-full bg-black/[0.02] border border-black/10 px-3 py-2 text-xs font-mono text-black/70 focus:border-black/30 focus:ring-0 placeholder:text-black/15 pr-16">
+                            <button type="button" @click="show = !show"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] uppercase tracking-[0.1em] text-black/25 hover:text-black"
+                                x-text="show ? '{{ __('Ocultar') }}' : '{{ __('Mostrar') }}'"></button>
+                        </div>
+                        <button wire:click="removeEnvVar({{ $index }})" class="text-black/20 hover:text-red-500 transition-colors px-1 shrink-0" title="{{ __('Eliminar') }}">&times;</button>
                     </div>
-                    <button wire:click="removeEnvVar({{ $index }})" class="text-black/20 hover:text-red-500 transition-colors px-1" title="{{ __('Eliminar') }}">&times;</button>
                 </div>
                 @endforeach
             </div>
@@ -416,14 +420,14 @@
         </div>
 
         <!-- Danger Zone -->
-        <div class="border border-red-200 p-6">
+        <div class="border border-red-200 p-4 sm:p-6">
             <p class="text-[10px] uppercase tracking-[0.25em] text-red-400 mb-4">{{ __('Zona peligrosa') }}</p>
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <p class="text-xs text-black/50">{{ __('Eliminar bot') }}</p>
                     <p class="text-[10px] text-black/25 mt-0.5">{{ __('Se eliminaran todos los archivos y registros.') }}</p>
                 </div>
-                <button wire:click="deleteBot" wire:confirm="{{ __('Eliminar este bot?') }}" class="border border-red-200 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-red-400 hover:border-red-500 hover:text-red-600 transition-colors">{{ __('Eliminar') }}</button>
+                <button wire:click="deleteBot" wire:confirm="{{ __('Eliminar este bot?') }}" class="border border-red-200 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-red-400 hover:border-red-500 hover:text-red-600 transition-colors self-start sm:self-auto shrink-0">{{ __('Eliminar') }}</button>
             </div>
         </div>
     </div>

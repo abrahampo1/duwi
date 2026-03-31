@@ -1,10 +1,10 @@
 <div>
-    <div class="flex items-end justify-between mb-12">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
         <div>
             <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-3">{{ __('Admin') }}</p>
-            <h1 class="font-serif text-3xl">{{ __('Panel de control') }}</h1>
+            <h1 class="font-serif text-2xl sm:text-3xl">{{ __('Panel de control') }}</h1>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 shrink-0">
             <button wire:click="syncAll" wire:loading.attr="disabled" class="border border-black/15 px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-black/40 hover:border-black hover:text-black transition-colors disabled:opacity-30">
                 <span wire:loading.remove wire:target="syncAll">{{ __('Sincronizar') }}</span>
                 <span wire:loading wire:target="syncAll">...</span>
@@ -42,9 +42,9 @@
     </div>
 
     {{-- Secondary Stats --}}
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-px bg-black/5 border border-black/10 mb-16">
-        <div class="bg-white p-4 text-center">
-            <p class="font-serif text-xl">{{ $overview['running'] }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-px bg-black/5 border border-black/10 mb-12 sm:mb-16">
+        <div class="bg-white p-3 sm:p-4 text-center">
+            <p class="font-serif text-lg sm:text-xl">{{ $overview['running'] }}</p>
             <p class="text-[9px] uppercase tracking-[0.2em] text-black/25 mt-1">Running</p>
         </div>
         <div class="bg-white p-4 text-center">
@@ -108,7 +108,7 @@
         <div class="border-t border-black/10">
             @forelse($allBots->sortByDesc(fn($b) => $b->status === 'running' ? 2 : ($b->status === 'error' ? 1 : 0)) as $bot)
             <div class="flex items-center justify-between py-4 border-b border-black/10" wire:key="admin-bot-{{ $bot->id }}">
-                <div class="flex items-center gap-4 min-w-0">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
                     @if($bot->status === 'running')
                         <span class="h-1.5 w-1.5 rounded-full bg-black shrink-0"></span>
                     @elseif($bot->status === 'error')
@@ -119,11 +119,11 @@
                         <span class="h-1.5 w-1.5 rounded-full bg-black/15 shrink-0"></span>
                     @endif
                     <a href="{{ route('bots.show', $bot) }}" class="text-sm hover:text-black/50 transition-colors truncate">{{ $bot->name }}</a>
-                    <span class="text-[10px] text-black/20 shrink-0">{{ $bot->user->name }}</span>
-                    <span class="text-[10px] uppercase tracking-[0.15em] text-black/20 shrink-0">{{ $bot->deploy_method }}</span>
-                    <span class="text-[10px] text-black/15 font-mono shrink-0">{{ $bot->entry_file }}</span>
+                    <span class="text-[10px] text-black/20 shrink-0 hidden sm:inline">{{ $bot->user->name }}</span>
+                    <span class="text-[10px] uppercase tracking-[0.15em] text-black/20 shrink-0 hidden md:inline">{{ $bot->deploy_method }}</span>
+                    <span class="text-[10px] text-black/15 font-mono shrink-0 hidden md:inline">{{ $bot->entry_file }}</span>
                     @if($bot->latestDeployment)
-                        <span class="text-[10px] font-mono shrink-0
+                        <span class="text-[10px] font-mono shrink-0 hidden sm:inline
                             {{ match($bot->latestDeployment->status) {
                                 'success' => 'text-green-600',
                                 'failed', 'rolled_back' => 'text-red-500',
@@ -133,18 +133,18 @@
                     @endif
                 </div>
 
-                <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-3 shrink-0 ms-3">
                     @if($bot->status === 'running')
-                        <button wire:click="stopBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                        <button wire:click="stopBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                             <span wire:loading.remove wire:target="stopBot({{ $bot->id }})">Stop</span>
                             <span wire:loading wire:target="stopBot({{ $bot->id }})">...</span>
                         </button>
-                        <button wire:click="restartBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                        <button wire:click="restartBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                             <span wire:loading.remove wire:target="restartBot({{ $bot->id }})">Restart</span>
                             <span wire:loading wire:target="restartBot({{ $bot->id }})">...</span>
                         </button>
                     @elseif($bot->status !== 'deploying')
-                        <button wire:click="startBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                        <button wire:click="startBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                             <span wire:loading.remove wire:target="startBot({{ $bot->id }})">Start</span>
                             <span wire:loading wire:target="startBot({{ $bot->id }})">...</span>
                         </button>
@@ -165,8 +165,8 @@
         <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-6">{{ __('Deploys recientes') }}</p>
         <div class="border-t border-black/10">
             @forelse($recentDeploys as $deploy)
-            <div class="flex items-center justify-between py-4 border-b border-black/10" wire:key="deploy-{{ $deploy->id }}">
-                <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-4 border-b border-black/10" wire:key="deploy-{{ $deploy->id }}">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
                     <span class="h-1.5 w-1.5 rounded-full shrink-0
                         {{ match($deploy->status) {
                             'success' => 'bg-green-500',
@@ -174,23 +174,23 @@
                             'running', 'verifying' => 'bg-black/40 animate-pulse',
                             default => 'bg-black/15',
                         } }}"></span>
-                    <a href="{{ route('bots.show', $deploy->bot) }}" class="text-sm hover:text-black/50 transition-colors">{{ $deploy->bot->name }}</a>
-                    <span class="text-[10px] text-black/20">{{ $deploy->bot->user->name }}</span>
-                    <span class="text-[10px] font-mono text-black/30">{{ $deploy->shortCommit() }}</span>
+                    <a href="{{ route('bots.show', $deploy->bot) }}" class="text-sm hover:text-black/50 transition-colors truncate">{{ $deploy->bot->name }}</a>
+                    <span class="text-[10px] text-black/20 hidden sm:inline shrink-0">{{ $deploy->bot->user->name }}</span>
+                    <span class="text-[10px] font-mono text-black/30 shrink-0">{{ $deploy->shortCommit() }}</span>
                     @if($deploy->commit_message)
-                        <span class="text-[10px] text-black/20 truncate max-w-48">{{ $deploy->commit_message }}</span>
+                        <span class="text-[10px] text-black/20 truncate max-w-48 hidden md:inline">{{ $deploy->commit_message }}</span>
                     @endif
                 </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-[10px] uppercase tracking-[0.15em] text-black/20">{{ $deploy->triggered_by }}</span>
+                <div class="flex items-center gap-3 sm:gap-4 shrink-0 ms-5 sm:ms-0">
                     <span class="text-[10px] font-mono
                         {{ match($deploy->status) {
                             'success' => 'text-green-600',
                             'failed', 'rolled_back' => 'text-red-500',
                             default => 'text-black/30',
                         } }}">{{ $deploy->status }}</span>
+                    <span class="text-[10px] uppercase tracking-[0.15em] text-black/20 hidden sm:inline">{{ $deploy->triggered_by }}</span>
                     @if($deploy->duration())
-                        <span class="text-[10px] text-black/15 font-mono">{{ $deploy->duration() }}</span>
+                        <span class="text-[10px] text-black/15 font-mono hidden sm:inline">{{ $deploy->duration() }}</span>
                     @endif
                     <span class="text-[10px] text-black/15">{{ $deploy->created_at->diffForHumans() }}</span>
                 </div>

@@ -10,7 +10,7 @@
     @csrf
 
     <!-- Name & Entry File -->
-    <div class="grid grid-cols-2 gap-8 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-8">
         <div>
             <label for="name" class="block text-[10px] uppercase tracking-[0.15em] text-black/40 mb-2">{{ __('Nombre') }}</label>
             <input type="text" name="name" id="name" value="{{ old('name') }}" required

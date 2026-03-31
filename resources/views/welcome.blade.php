@@ -18,7 +18,7 @@
 
     <!-- Nav -->
     <nav class="border-b border-black/10">
-        <div class="mx-auto max-w-6xl px-6">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6">
             <div class="flex h-14 items-center justify-between">
                 <span class="font-serif text-lg tracking-tight">DUWI</span>
                 <div class="flex items-center gap-5">
@@ -30,10 +30,10 @@
     </nav>
 
     <!-- Hero -->
-    <div class="mx-auto max-w-6xl px-6">
-        <div class="py-32 sm:py-48 max-w-2xl">
-            <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-6">Don't be upset with internet</p>
-            <h1 class="font-serif text-5xl sm:text-7xl leading-[0.9] tracking-tight">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="py-20 sm:py-48 max-w-2xl">
+            <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-4 sm:mb-6">Don't be upset with internet</p>
+            <h1 class="font-serif text-4xl sm:text-7xl leading-[0.9] tracking-tight">
                 {{ __('Hostea tus bots de Discord') }}
             </h1>
             <p class="mt-8 text-sm leading-relaxed text-black/50 max-w-md font-light">
@@ -50,7 +50,7 @@
         <div class="border-t border-black/10"></div>
 
         <!-- Features -->
-        <div class="py-24 grid grid-cols-1 sm:grid-cols-3 gap-16">
+        <div class="py-16 sm:py-24 grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-16">
             <div>
                 <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-3">01</p>
                 <h3 class="font-serif text-xl mb-3">GitHub</h3>

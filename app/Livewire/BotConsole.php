@@ -29,6 +29,7 @@ class BotConsole extends Component
 
     public function startBot(): void
     {
+        $this->consoleOutput = '';
         $service = app(BotProcessService::class);
         $service->start($this->bot);
         $this->bot->refresh();
@@ -43,6 +44,7 @@ class BotConsole extends Component
 
     public function restartBot(): void
     {
+        $this->consoleOutput = '';
         $service = app(BotProcessService::class);
         $service->restart($this->bot);
         $this->bot->refresh();

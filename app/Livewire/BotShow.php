@@ -46,6 +46,7 @@ class BotShow extends Component
 
     public function startBot(): void
     {
+        $this->consoleOutput = '';
         $service = app(BotProcessService::class);
         if ($service->start($this->bot)) {
             $this->notify(__('Bot iniciado.'));
@@ -65,6 +66,7 @@ class BotShow extends Component
 
     public function restartBot(): void
     {
+        $this->consoleOutput = '';
         $service = app(BotProcessService::class);
         if ($service->restart($this->bot)) {
             $this->notify(__('Bot reiniciado.'));

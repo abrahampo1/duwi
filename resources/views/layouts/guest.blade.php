@@ -16,7 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full bg-white text-black antialiased">
-    <div class="flex min-h-full flex-col justify-center px-6 py-16">
+    <div class="flex min-h-full flex-col justify-center px-4 sm:px-6 py-12 sm:py-16">
         <div class="mx-auto w-full max-w-sm">
             <div class="text-center mb-12">
                 <a href="/" class="font-serif text-2xl tracking-tight">DUWI</a>

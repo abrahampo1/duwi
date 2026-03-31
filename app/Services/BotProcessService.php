@@ -34,12 +34,21 @@ class BotProcessService
             return false;
         }
 
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $logFile = $botPath . '/bot_output.log';
+        $errorLogFile = $botPath . '/bot_error.log';
+
+        // Clear previous log files
+        file_put_contents($logFile, '');
+        file_put_contents($errorLogFile, '');
+
         $envVars = $this->parseEnvVars($bot->env_vars);
 
         if (!empty($envVars)) {
             $envContent = '';
             foreach ($envVars as $key => $value) {
-                $envContent .= "{$key}={$value}\n";
+                $escaped = str_replace('"', '\\"', $value);
+                $envContent .= "{$key}=\"{$escaped}\"\n";
             }
             file_put_contents($botPath . '/.env', $envContent);
         }
@@ -51,10 +60,6 @@ class BotProcessService
         foreach ($envVars as $key => $value) {
             $envString .= "$key=\"$value\" ";
         }
-
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $logFile = $botPath . '/bot_output.log';
-        $errorLogFile = $botPath . '/bot_error.log';
         $nodeBin = $this->runtime->nodePath();
 
         if ($isWindows) {
@@ -769,7 +774,7 @@ class BotProcessService
             $line = trim($line);
             if ($line && str_contains($line, '=')) {
                 [$key, $value] = explode('=', $line, 2);
-                $vars[trim($key)] = trim($value);
+                $vars[trim($key)] = $value;
             }
         }
 

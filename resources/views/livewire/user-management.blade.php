@@ -1,10 +1,10 @@
 <div>
-    <div class="flex items-end justify-between mb-12">
+    <div class="flex items-end justify-between gap-4 mb-12">
         <div>
             <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-3">{{ __('Admin') }}</p>
-            <h1 class="font-serif text-3xl">{{ __('Usuarios') }}</h1>
+            <h1 class="font-serif text-2xl sm:text-3xl">{{ __('Usuarios') }}</h1>
         </div>
-        <button wire:click="$toggle('showForm')" class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors">
+        <button wire:click="$toggle('showForm')" class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors shrink-0">
             {{ $showForm ? __('Cancelar') : __('Nuevo usuario') }}
         </button>
     </div>
@@ -57,24 +57,24 @@
     <!-- Users Table -->
     <div class="border-t border-black/10">
         @foreach($users as $user)
-        <div class="flex items-center justify-between py-5 border-b border-black/10" wire:key="user-{{ $user->id }}">
-            <div class="flex items-center gap-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 py-4 sm:py-5 border-b border-black/10" wire:key="user-{{ $user->id }}">
+            <div class="flex items-center gap-3 sm:gap-5 min-w-0">
                 @if($user->is_admin)
-                    <span class="h-1.5 w-1.5 rounded-full bg-black"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-black shrink-0"></span>
                 @else
-                    <span class="h-1.5 w-1.5 rounded-full bg-black/15"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-black/15 shrink-0"></span>
                 @endif
-                <div>
+                <div class="min-w-0">
                     <span class="text-sm">{{ $user->name }}</span>
                     @if($user->is_admin)
                         <span class="text-[9px] uppercase tracking-[0.15em] text-black/30 ms-2">admin</span>
                     @endif
                 </div>
-                <span class="text-xs text-black/30">{{ $user->email }}</span>
-                <span class="text-[10px] text-black/20">{{ $user->bots_count }} {{ $user->bots_count === 1 ? 'bot' : 'bots' }}</span>
+                <span class="text-xs text-black/30 hidden sm:inline truncate">{{ $user->email }}</span>
+                <span class="text-[10px] text-black/20 shrink-0">{{ $user->bots_count }} {{ $user->bots_count === 1 ? 'bot' : 'bots' }}</span>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 shrink-0 ms-5 sm:ms-0">
                 @if($user->id !== auth()->id())
                     <button wire:click="toggleAdmin({{ $user->id }})" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black">
                         {{ $user->is_admin ? __('Quitar admin') : __('Hacer admin') }}

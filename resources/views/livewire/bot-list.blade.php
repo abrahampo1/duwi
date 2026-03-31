@@ -1,10 +1,10 @@
 <div wire:poll.10s="refreshBots">
-    <div class="flex items-end justify-between mb-12">
+    <div class="flex items-end justify-between gap-4 mb-12">
         <div>
             <p class="text-[10px] uppercase tracking-[0.25em] text-black/30 mb-3">{{ __('Bots') }}</p>
-            <h1 class="font-serif text-3xl">{{ __('Mis bots') }}</h1>
+            <h1 class="font-serif text-2xl sm:text-3xl">{{ __('Mis bots') }}</h1>
         </div>
-        <a href="{{ route('bots.create') }}" class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors">
+        <a href="{{ route('bots.create') }}" class="border border-black px-4 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-black hover:text-white transition-colors shrink-0">
             {{ __('Nuevo bot') }}
         </a>
     </div>
@@ -26,22 +26,22 @@
     @else
     <div class="border-t border-black/10">
         @foreach($bots as $bot)
-        <div class="flex items-center justify-between py-5 border-b border-black/10" wire:key="bot-{{ $bot->id }}">
-            <div class="flex items-center gap-5">
+        <div class="flex items-center justify-between py-4 sm:py-5 border-b border-black/10" wire:key="bot-{{ $bot->id }}">
+            <div class="flex items-center gap-3 sm:gap-5 min-w-0">
                 @if($bot->status === 'running')
-                    <span class="h-1.5 w-1.5 rounded-full bg-black"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-black shrink-0"></span>
                 @elseif($bot->status === 'error')
-                    <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0"></span>
                 @elseif($bot->status === 'deploying')
-                    <span class="h-1.5 w-1.5 rounded-full bg-black/40 animate-pulse"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-black/40 animate-pulse shrink-0"></span>
                 @else
-                    <span class="h-1.5 w-1.5 rounded-full bg-black/15"></span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-black/15 shrink-0"></span>
                 @endif
-                <a href="{{ route('bots.show', $bot) }}" class="text-sm hover:text-black/50 transition-colors">{{ $bot->name }}</a>
-                <span class="text-[10px] uppercase tracking-[0.15em] text-black/20">{{ $bot->deploy_method }}</span>
-                <span class="text-[10px] text-black/20 font-mono">{{ $bot->entry_file }}</span>
+                <a href="{{ route('bots.show', $bot) }}" class="text-sm hover:text-black/50 transition-colors truncate">{{ $bot->name }}</a>
+                <span class="text-[10px] uppercase tracking-[0.15em] text-black/20 hidden sm:inline shrink-0">{{ $bot->deploy_method }}</span>
+                <span class="text-[10px] text-black/20 font-mono hidden md:inline shrink-0">{{ $bot->entry_file }}</span>
                 @if($bot->latestDeployment)
-                    <span class="text-[10px] font-mono
+                    <span class="text-[10px] font-mono hidden sm:inline shrink-0
                         {{ match($bot->latestDeployment->status) {
                             'success' => 'text-green-600',
                             'failed', 'rolled_back' => 'text-red-500',
@@ -51,18 +51,18 @@
                 @endif
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 shrink-0 ms-3">
                 @if($bot->status === 'running')
-                    <button wire:click="stopBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                    <button wire:click="stopBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                         <span wire:loading.remove wire:target="stopBot({{ $bot->id }})">Stop</span>
                         <span wire:loading wire:target="stopBot({{ $bot->id }})">...</span>
                     </button>
-                    <button wire:click="restartBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                    <button wire:click="restartBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                         <span wire:loading.remove wire:target="restartBot({{ $bot->id }})">Restart</span>
                         <span wire:loading wire:target="restartBot({{ $bot->id }})">...</span>
                     </button>
                 @elseif($bot->status !== 'deploying')
-                    <button wire:click="startBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30">
+                    <button wire:click="startBot({{ $bot->id }})" wire:loading.attr="disabled" class="text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black disabled:opacity-30 hidden sm:inline">
                         <span wire:loading.remove wire:target="startBot({{ $bot->id }})">Start</span>
                         <span wire:loading wire:target="startBot({{ $bot->id }})">...</span>
                     </button>
