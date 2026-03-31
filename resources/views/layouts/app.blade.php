@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'fa' ? 'rtl' : 'ltr' }}" class="h-full">
+<html lang="{{ app()->getLocale() }}" dir="{{ in_array(app()->getLocale(), ['fa', 'he']) ? 'rtl' : 'ltr' }}" class="h-full">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     @if(app()->getLocale() === 'fa')
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500&display=swap" rel="stylesheet">
+    @elseif(app()->getLocale() === 'he')
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500&display=swap" rel="stylesheet">
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -30,8 +32,8 @@
                                 {{ __('Bots') }}
                             </a>
                             @if(Auth::user()->is_admin)
-                            <a href="{{ route('admin.users') }}" class="text-xs uppercase tracking-[0.15em] {{ request()->routeIs('admin.*') ? 'text-black' : 'text-black/40 hover:text-black' }}">
-                                {{ __('Usuarios') }}
+                            <a href="{{ route('admin.dashboard') }}" class="text-xs uppercase tracking-[0.15em] {{ request()->routeIs('admin.*') ? 'text-black' : 'text-black/40 hover:text-black' }}">
+                                Admin
                             </a>
                             @endif
                         </div>

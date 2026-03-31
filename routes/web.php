@@ -8,6 +8,7 @@ use App\Livewire\BotConsole;
 use App\Livewire\BotList;
 use App\Livewire\BotShow;
 use App\Livewire\AccountSettings;
+use App\Livewire\AdminDashboard;
 use App\Livewire\UserManagement;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,7 @@ Route::middleware('auth')->group(function () {
 
     // Admin
     Route::middleware('admin')->group(function () {
+        Route::get('/admin', AdminDashboard::class)->name('admin.dashboard');
         Route::get('/admin/users', UserManagement::class)->name('admin.users');
     });
 });
